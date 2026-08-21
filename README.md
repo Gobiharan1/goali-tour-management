@@ -1,69 +1,43 @@
-# Goali Tours Management System
+# Goali Tours — Browser Itinerary Studio
 
-A responsive PHP/MySQL back office for building, customizing and exporting polished tour itineraries.
+A polished, database-free tour management prototype that runs entirely in the browser.
 
-## Requirements
+## Live system
 
-- PHP 8.1 or newer
-- MySQL 8 / MariaDB 10.5 or newer
-- Composer (for one-click PDF downloads)
-- Apache with `mod_rewrite`, or PHP's built-in server for development
+Open the published GitHub Pages site:
 
-## Quick setup with XAMPP
+`https://gobiharan1.github.io/goali-tour-management/`
 
-1. Copy `goali-tour-management` into `C:\xampp\htdocs\`.
-2. Start Apache and MySQL.
-3. Import `database/schema.sql` in phpMyAdmin.
-4. Open a terminal in the project folder and run `composer install`.
-5. Visit `http://localhost/goali-tour-management/`.
+## What works
 
-Initial local login:
+- Create, edit, duplicate, archive, restore, and delete tour proposals
+- Build day-by-day itineraries with customer details, pricing, notes, and images
+- Upload a company logo and automatically select a matching brand color
+- Preview a branded, page-safe A4 itinerary
+- Use **Print / Save PDF** for reliable PDF export without Dompdf
+- Search and filter the itinerary library
+- Export and import a complete JSON workspace backup
+- Responsive dashboard for desktop, tablet, and mobile
 
-- Email: `admin@goalitours.com`
-- Password: `admin123`
+## Storage
 
-Change the initial password immediately after signing in.
+All company settings, tours, and uploaded images are saved in the browser's `localStorage`. No PHP, MySQL, server, account, or setup is required.
+
+Browser data is specific to the device and browser profile. Use **Export backup** before clearing browser data or moving to another computer, then use **Import backup** on the new device.
+
+## Run locally
+
+Open `index.html` directly, or serve the folder with any static web server.
 
 ## PDF export
 
-The itinerary screen always supports browser preview and Print / Save PDF. Running `composer install` adds Dompdf and enables the one-click Download PDF button.
+Open a proposal, select **Preview**, then choose **Print / Save PDF**. In the browser print dialog:
 
-The redesigned itinerary includes:
+- Destination: Save as PDF
+- Paper size: A4
+- Margins: None
+- Background graphics: Enabled
 
-- Full-bleed destination cover
-- Journey overview, route and highlight cards
-- Image-led day-by-day itinerary
-- Inclusions, exclusions and package pricing
-- Important notes and additional information
-- Curated gallery and branded closing page
-- A4 print rules and page-safe content blocks
+## Technology
 
-## Database configuration
-
-Defaults are suitable for a standard local XAMPP installation. Production credentials can be supplied without editing source code:
-
-```text
-GOALI_DB_HOST
-GOALI_DB_NAME
-GOALI_DB_USER
-GOALI_DB_PASS
-```
-
-## Main workflows
-
-- Role-based admin access and approval
-- Tour categories and duration filtering
-- New, duplicated and customer-specific packages
-- Day plans, route, pricing, highlights, inclusions and gallery uploads
-- Soft deletion and recycle-bin restore
-- Company name and logo settings
-- Branded HTML/PDF itinerary export
-
-## Production checklist
-
-- Change the initial administrator password.
-- Use a dedicated database user with a strong password.
-- Serve the site over HTTPS.
-- Restrict uploads by MIME type and file size at the server level.
-- Back up the database and `assets/uploads` directory.
-- Disable PHP error display and enable server-side logging.
+HTML, CSS, and vanilla JavaScript. There are no build tools or runtime dependencies.

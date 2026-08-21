@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#173f32">
+  <meta name="description" content="A browser-based workspace for creating polished, branded travel itineraries.">
+  <meta property="og:title" content="Goali Tours — Itinerary Studio">
+  <meta property="og:description" content="Create, customize, preview, and print beautiful tour proposals directly in your browser.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://gobiharan1.github.io/goali-tour-management/">
+  <meta property="og:image" content="https://gobiharan1.github.io/goali-tour-management/public/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Goali Tours — Itinerary Studio">
+  <meta name="twitter:description" content="Create, customize, preview, and print beautiful tour proposals directly in your browser.">
+  <meta name="twitter:image" content="https://gobiharan1.github.io/goali-tour-management/public/og.png">
+  <title>Goali Tours — Itinerary Studio</title>
+  <link rel="stylesheet" href="assets/css/browser-app.css">
+  <script defer src="assets/js/app.js"></script>
+</head>
+<body>
+  <div id="app" class="app-shell">
+    <aside class="sidebar" aria-label="Primary navigation">
+      <div class="brand-lockup">
+        <div id="sidebarLogo" class="brand-logo" aria-hidden="true">GT</div>
+        <div>
+          <strong id="sidebarCompany">Goali Tours</strong>
+          <span>Itinerary studio</span>
+        </div>
+      </div>
+
+      <nav class="side-nav">
+        <button class="nav-item active" data-view="dashboard" type="button">
+          <span class="nav-icon">⌂</span><span>Dashboard</span>
+        </button>
+        <button class="nav-item" data-view="editor" type="button">
+          <span class="nav-icon">＋</span><span>Create itinerary</span>
+        </button>
+        <button class="nav-item" data-view="recycle" type="button">
+          <span class="nav-icon">↺</span><span>Recycle bin</span>
+        </button>
+        <button class="nav-item" data-view="brand" type="button">
+          <span class="nav-icon">◇</span><span>Brand settings</span>
+        </button>
+      </nav>
+
+      <div class="storage-card">
+        <span class="eyebrow">Browser workspace</span>
+        <strong>No database needed</strong>
+        <p>Your tours stay on this device. Export a backup whenever you like.</p>
+        <button id="exportBackup" class="text-button" type="button">Export backup →</button>
+        <label class="text-button import-label">Import backup →
+          <input id="importBackup" type="file" accept="application/json" hidden>
+        </label>
+      </div>
+
+      <div class="sidebar-foot">
+        <span class="status-dot"></span>
+        <span>Saved locally</span>
+        <button id="mobileClose" class="mobile-close" type="button" aria-label="Close menu">×</button>
+      </div>
+    </aside>
+
+    <div id="sidebarBackdrop" class="sidebar-backdrop"></div>
+
+    <main class="main-panel">
+      <header class="mobile-header">
+        <button id="mobileMenu" class="icon-button" type="button" aria-label="Open menu">☰</button>
+        <strong id="mobileCompany">Goali Tours</strong>
+        <button class="icon-button" data-view-jump="editor" type="button" aria-label="Create itinerary">＋</button>
+      </header>
+
+      <section id="dashboardView" class="view active" aria-labelledby="dashboardTitle">
+        <div class="page-head">
+          <div>
+            <span class="eyebrow">Tour workspace</span>
+            <h1 id="dashboardTitle">Your journeys, beautifully organized.</h1>
+            <p>Create tailored tour stories, keep every detail editable, and deliver a polished proposal.</p>
+          </div>
+          <button class="button primary" data-view-jump="editor" type="button">Create itinerary <span>＋</span></button>
+        </div>
+
+        <div class="stats-grid" id="statsGrid"></div>
+
+        <div class="content-toolbar">
+          <div>
+            <span class="eyebrow">Itinerary library</span>
+            <h2>Recent proposals</h2>
+          </div>
+          <div class="toolbar-controls">
+            <label class="search-control">
+              <span>⌕</span>
+              <input id="searchTours" type="search" placeholder="Search tours or customers" aria-label="Search tours">
+            </label>
+            <select id="categoryFilter" aria-label="Filter by category"></select>
+          </div>
+        </div>
+
+        <div id="tourGrid" class="tour-grid"></div>
+      </section>
+
+      <section id="editorView" class="view" aria-labelledby="editorTitle">
+        <div class="editor-head">
+          <button class="back-button" data-view-jump="dashboard" type="button">← Back to dashboard</button>
+          <div class="editor-title-row">
+            <div>
+              <span id="editorEyebrow" class="eyebrow">New proposal</span>
+              <h1 id="editorTitle">Create an itinerary</h1>
+            </div>
+            <div class="autosave"><span class="status-dot"></span><span id="saveStatus">Changes save on submit</span></div>
+          </div>
+        </div>
+
+        <form id="tourForm" novalidate>
+          <input id="tourId" type="hidden">
+
+          <section class="form-card">
+            <div class="section-number">01</div>
+            <div class="section-heading">
+              <h2>Journey essentials</h2>
+              <p>Give this proposal a clear identity and travel style.</p>
+            </div>
+            <div class="form-grid">
+              <label class="field wide"><span>Tour name *</span><input id="tourName" required placeholder="Southern coast & tea country"></label>
+              <label class="field"><span>Package category</span><select id="tourCategory"></select></label>
+              <label class="field"><span>Activity level</span><select id="activityLevel"><option>Easy</option><option selected>Intermediate</option><option>Hard</option></select></label>
+              <label class="field"><span>Days</span><input id="durationDays" type="number" min="1" max="30" value="5"></label>
+              <label class="field"><span>Nights</span><input id="durationNights" type="number" min="0" max="30" value="4"></label>
+            </div>
+          </section>
+
+          <section class="form-card">
+            <div class="section-number">02</div>
+            <div class="section-heading">
+              <h2>Guest & story</h2>
+              <p>Personalize the document for the person receiving it.</p>
+            </div>
+            <div class="form-grid">
+              <label class="field"><span>Customer name</span><input id="customerName" placeholder="Alex & Jamie"></label>
+              <label class="field"><span>Travel dates</span><input id="travelDates" placeholder="12–17 December 2026"></label>
+              <label class="field wide"><span>Welcome message</span><textarea id="customerDetails" placeholder="A short, warm introduction to this journey."></textarea></label>
+              <label class="field wide"><span>Route / locations</span><input id="locations" placeholder="Colombo → Galle → Ella → Kandy"></label>
+            </div>
+          </section>
+
+          <section class="form-card">
+            <div class="section-number">03</div>
+            <div class="section-heading split">
+              <div><h2>Day-by-day story</h2><p>Add a title, description, and optional image for each day.</p></div>
+              <button id="addDay" class="button secondary compact" type="button">Add day ＋</button>
+            </div>
+            <div id="dayPlans" class="day-editor-list"></div>
+          </section>
+
+          <section class="form-card">
+            <div class="section-number">04</div>
+            <div class="section-heading">
+              <h2>Package details</h2>
+              <p>Complete the offer with highlights, inclusions, and pricing.</p>
+            </div>
+            <div class="form-grid">
+              <label class="field wide"><span>Highlights <small>one per line</small></span><textarea id="highlights" placeholder="Sunset fort walk&#10;Scenic hill-country train&#10;Private tea estate visit"></textarea></label>
+              <label class="field"><span>Included <small>one per line</small></span><textarea id="inclusions" placeholder="Private transport&#10;Boutique accommodation&#10;Daily breakfast"></textarea></label>
+              <label class="field"><span>Not included <small>one per line</small></span><textarea id="exclusions" placeholder="International flights&#10;Travel insurance&#10;Personal expenses"></textarea></label>
+              <label class="field"><span>Currency</span><select id="priceCurrency"><option>LKR</option><option>USD</option><option>EUR</option><option>GBP</option><option>AUD</option></select></label>
+              <label class="field"><span>Package price</span><input id="priceAmount" type="number" min="0" step="0.01" placeholder="2500"></label>
+              <label class="field wide"><span>Important notes</span><textarea id="importantNotes" placeholder="Payment schedule, cancellation terms, or helpful travel notes."></textarea></label>
+            </div>
+          </section>
+
+          <section class="form-card">
+            <div class="section-number">05</div>
+            <div class="section-heading">
+              <h2>Cover image</h2>
+              <p>Choose a hero image for the dashboard and itinerary cover.</p>
+            </div>
+            <div class="image-uploader">
+              <div id="coverPreview" class="upload-preview"><span>No image selected</span></div>
+              <div>
+                <label class="button secondary file-button">Choose image<input id="coverImage" type="file" accept="image/*" hidden></label>
+                <button id="removeCover" class="text-button danger-text" type="button">Remove image</button>
+                <p>Images are resized before being saved to your browser.</p>
+              </div>
+            </div>
+          </section>
+
+          <div class="form-actions">
+            <button class="button ghost" data-view-jump="dashboard" type="button">Cancel</button>
+            <button class="button primary" type="submit">Save itinerary</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="recycleView" class="view" aria-labelledby="recycleTitle">
+        <div class="page-head compact-head">
+          <div><span class="eyebrow">Archive</span><h1 id="recycleTitle">Recycle bin</h1><p>Restore archived proposals or remove them permanently.</p></div>
+        </div>
+        <div id="recycleList" class="recycle-list"></div>
+      </section>
+
+      <section id="brandView" class="view" aria-labelledby="brandTitle">
+        <div class="page-head compact-head">
+          <div><span class="eyebrow">Visual identity</span><h1 id="brandTitle">Brand settings</h1><p>Your color and logo flow into every proposal and printed PDF.</p></div>
+        </div>
+        <form id="brandForm" class="brand-layout">
+          <section class="form-card brand-form-card">
+            <div class="section-heading"><h2>Company profile</h2><p>Customize the workspace without editing any code.</p></div>
+            <label class="field"><span>Company name</span><input id="companyName" required></label>
+            <label class="field"><span>Contact line</span><input id="companyContact" placeholder="hello@yourcompany.com · +94 00 000 0000"></label>
+            <label class="field"><span>Brand color</span><span class="color-input"><input id="brandColor" type="color" value="#173f32"><input id="brandColorText" value="#173f32" maxlength="7"></span></label>
+            <label class="field"><span>Company logo</span><span class="logo-upload-row"><span id="brandLogoPreview" class="brand-logo large">GT</span><span><span class="button secondary file-button">Upload logo<input id="brandLogo" type="file" accept="image/*" hidden></span><button id="removeLogo" class="text-button danger-text" type="button">Remove</button></span></span></label>
+            <div class="brand-actions"><button class="button primary" type="submit">Save brand settings</button></div>
+          </section>
+          <aside class="brand-preview" id="brandPreview">
+            <span class="eyebrow">Live preview</span>
+            <div class="preview-paper">
+              <div class="preview-brand"><span id="previewLogo" class="brand-logo">GT</span><span id="previewCompany">Goali Tours</span></div>
+              <p>Tailored for Alex & Jamie</p>
+              <h2>A journey made<br>just for you.</h2>
+              <span class="preview-rule"></span>
+              <small>Explore slowly. Remember everything.</small>
+            </div>
+          </aside>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <div id="previewModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="previewModalTitle" hidden>
+    <div class="modal-bar">
+      <div><span class="eyebrow">Document preview</span><strong id="previewModalTitle">Itinerary</strong></div>
+      <div class="modal-actions">
+        <button id="printItinerary" class="button primary compact" type="button">Print / Save PDF</button>
+        <button id="closePreview" class="icon-button light" type="button" aria-label="Close preview">×</button>
+      </div>
+    </div>
+    <div id="itineraryDocument" class="itinerary-document"></div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
