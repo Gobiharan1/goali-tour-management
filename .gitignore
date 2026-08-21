@@ -1,13 +1,7 @@
 .DS_Store
-.env
-.env.*
 *.log
 *.tmp
-
-# Generated PDF image cache
-assets/uploads/pdf-cache/
 
 # Local editor/project files
 .idea/
 .vscode/
-
