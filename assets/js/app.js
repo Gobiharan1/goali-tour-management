@@ -2,6 +2,7 @@
   'use strict';
 
   const STORAGE_KEY = 'goali-itinerary-studio-v1';
+  const Designs = window.GoaliDesigns;
   const CATEGORIES = [
     'Sri Lanka Family Tours',
     'Sri Lanka Honeymoon Tours',
@@ -28,6 +29,7 @@
     exclusions: ['International flights', 'Travel insurance', 'Personal expenses', 'Optional activities'],
     priceCurrency: 'USD',
     priceAmount: 2450,
+    designId: 'editorial-forest',
     importantNotes: 'Rates are based on two guests sharing. The itinerary can be adjusted around your preferred pace, room style, and interests.',
     coverImage: 'assets/uploads/tours/gallery_20260813_121836_8b9055ea73.jpg',
     days: [
@@ -43,13 +45,15 @@
   };
 
   const defaultState = () => ({
-    version: 1,
+    version: 2,
     settings: {
       companyName: 'Goali Tours',
       contact: 'hello@goalitours.com · +94 77 000 0000',
       brandColor: '#173f32',
-      logo: ''
+      logo: '',
+      defaultDesignId: 'editorial-forest'
     },
+    designs: [],
     tours: [sampleTour]
   });
 
@@ -57,6 +61,8 @@
   let currentView = 'dashboard';
   let draftDays = [];
   let draftCover = '';
+  let selectedDesignId = state.settings.defaultDesignId;
+  let designDraft = Designs.find(selectedDesignId, state.designs);
   let toastTimer;
 
   const $ = (selector, root = document) => root.querySelector(selector);
@@ -69,14 +75,31 @@
   function loadState() {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      if (!stored) return defaultState();
+      if (!stored) return migrateState(defaultState());
       const parsed = JSON.parse(stored);
-      if (!parsed || !Array.isArray(parsed.tours) || !parsed.settings) return defaultState();
-      return parsed;
+      if (!parsed || !Array.isArray(parsed.tours) || !parsed.settings) return migrateState(defaultState());
+      return migrateState(parsed);
     } catch (error) {
       console.warn('Could not read local workspace.', error);
-      return defaultState();
+      return migrateState(defaultState());
     }
+  }
+
+  function migrateState(workspace) {
+    const fallback = defaultState();
+    const migrated = clone(workspace || fallback);
+    migrated.version = 2;
+    migrated.settings = { ...fallback.settings, ...(migrated.settings || {}) };
+    migrated.designs = Array.isArray(migrated.designs)
+      ? migrated.designs.map(design => ({ ...Designs.normalize(design), builtIn: false }))
+      : [];
+    const availableIds = new Set(Designs.all(migrated.designs).map(design => design.id));
+    if (!availableIds.has(migrated.settings.defaultDesignId)) migrated.settings.defaultDesignId = 'editorial-forest';
+    migrated.tours = Array.isArray(migrated.tours) ? migrated.tours : [];
+    migrated.tours.forEach(tour => {
+      if (!availableIds.has(tour.designId)) tour.designId = migrated.settings.defaultDesignId;
+    });
+    return migrated;
   }
 
   function saveState(message = 'Saved to this browser') {
@@ -197,6 +220,7 @@
     if (name === 'dashboard') renderDashboard();
     if (name === 'recycle') renderRecycle();
     if (name === 'brand') applyBrand();
+    if (name === 'design') renderDesignStudio();
     closeMobileMenu();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -206,6 +230,7 @@
     renderFilters();
     renderDashboard();
     renderRecycle();
+    renderDesignGallery();
   }
 
   function renderFilters() {
@@ -213,6 +238,15 @@
     $('#categoryFilter').innerHTML = `<option value="">All categories</option>${CATEGORIES.map(category => `<option value="${escapeHtml(category)}">${escapeHtml(category.replace('Sri Lanka ', ''))}</option>`).join('')}`;
     $('#categoryFilter').value = CATEGORIES.includes(current) ? current : '';
     $('#tourCategory').innerHTML = CATEGORIES.map(category => `<option>${escapeHtml(category)}</option>`).join('');
+    renderTourDesignOptions();
+  }
+
+  function renderTourDesignOptions() {
+    const select = $('#tourDesign');
+    if (!select) return;
+    const current = select.value;
+    select.innerHTML = Designs.all(state.designs).map(design => `<option value="${escapeHtml(design.id)}">${escapeHtml(design.name)}${design.id === state.settings.defaultDesignId ? ' — default' : ''}</option>`).join('');
+    select.value = Designs.all(state.designs).some(design => design.id === current) ? current : state.settings.defaultDesignId;
   }
 
   function renderDashboard() {
@@ -269,6 +303,7 @@
     $('#durationNights').value = 4;
     $('#activityLevel').value = 'Intermediate';
     $('#tourCategory').value = CATEGORIES[0];
+    $('#tourDesign').value = state.settings.defaultDesignId;
     $('#priceCurrency').value = 'LKR';
     $('#editorEyebrow').textContent = 'New proposal';
     $('#editorTitle').textContent = 'Create an itinerary';
@@ -298,6 +333,7 @@
     $('#priceCurrency').value = tour.priceCurrency || 'LKR';
     $('#priceAmount').value = Number(tour.priceAmount || 0);
     $('#importantNotes').value = tour.importantNotes || '';
+    $('#tourDesign').value = Designs.find(tour.designId || state.settings.defaultDesignId, state.designs).id;
     draftCover = safeImage(tour.coverImage);
     draftDays = clone(tour.days || []);
     if (!draftDays.length) draftDays = [{ title: 'Day 1', details: '', image: '' }];
@@ -398,6 +434,7 @@
       exclusions: normalizeLines($('#exclusions').value),
       priceCurrency: $('#priceCurrency').value,
       priceAmount: Math.max(0, Number($('#priceAmount').value || 0)),
+      designId: $('#tourDesign').value || state.settings.defaultDesignId,
       importantNotes: $('#importantNotes').value.trim(),
       coverImage: safeImage(draftCover),
       days,
@@ -487,9 +524,165 @@
     return `<span class="${className}">${logo ? `<img src="${escapeHtml(logo)}" alt="${escapeHtml(state.settings.companyName)} logo">` : escapeHtml(initials())}</span>`;
   }
 
-  function openPreview(id) {
+  function renderDesignGallery() {
+    const gallery = $('#designGallery');
+    if (!gallery) return;
+    const designs = Designs.all(state.designs);
+    const defaultDesign = Designs.find(state.settings.defaultDesignId, state.designs);
+    $('#defaultDesignBadge').textContent = `Default: ${defaultDesign.name}`;
+    gallery.innerHTML = designs.map(design => `<button class="design-card ${design.id === selectedDesignId ? 'active' : ''}" type="button" data-select-design="${escapeHtml(design.id)}">
+      <span class="design-card-art" style="--card-primary:${design.primary};--card-accent:${design.accent};--card-paper:${design.paper};--card-ink:${design.ink}"><span class="design-card-lines"><i></i><i></i><i></i></span></span>
+      <span class="design-card-meta"><strong>${escapeHtml(design.name)}</strong><span>${design.builtIn ? 'Built-in design' : 'Your custom design'}${design.id === state.settings.defaultDesignId ? ' · Default' : ''}</span></span>
+    </button>`).join('');
+  }
+
+  function renderDesignStudio() {
+    const available = Designs.all(state.designs);
+    if (!available.some(design => design.id === selectedDesignId)) selectedDesignId = state.settings.defaultDesignId;
+    designDraft = Designs.find(selectedDesignId, state.designs);
+    $('#designFont').innerHTML = Object.entries(Designs.FONT_PAIRS).map(([id, pair]) => `<option value="${id}">${escapeHtml(pair.label)}</option>`).join('');
+    fillDesignForm();
+    renderDesignGallery();
+  }
+
+  function fillDesignForm() {
+    const design = Designs.normalize(designDraft);
+    $('#designId').value = design.id;
+    $('#designName').value = design.name;
+    ['Primary', 'Accent', 'Paper', 'Ink'].forEach(label => {
+      const value = design[label.toLowerCase()];
+      $(`#design${label}`).value = value;
+      $(`#design${label}Text`).value = value;
+    });
+    $('#designFont').value = design.fontPair;
+    $('#designCorners').value = design.cornerStyle;
+    $('#designDensity').value = design.density;
+    $('#designCover').value = design.coverStyle;
+    $('#designDayLayout').value = design.dayLayout;
+    ['showCover', 'showHighlights', 'showPricing', 'showNotes', 'showClosing', 'showPageNumbers'].forEach(key => { $(`#${key}`).checked = design[key]; });
+    $('#designTypeBadge').textContent = design.builtIn ? 'Built-in' : 'Custom';
+    $('#saveDesign').textContent = design.builtIn ? 'Save as custom design' : 'Save design';
+    $('#deleteDesign').hidden = Boolean(design.builtIn);
+    renderSectionOrder();
+    renderDesignPreview();
+  }
+
+  function readDesignForm() {
+    const current = Designs.normalize(designDraft || Designs.find(selectedDesignId, state.designs));
+    const color = key => {
+      const value = $(`#design${key}Text`).value.trim();
+      return /^#[0-9a-f]{6}$/i.test(value) ? value.toLowerCase() : current[key.toLowerCase()];
+    };
+    return Designs.normalize({
+      ...current,
+      ...designDraft,
+      id: $('#designId').value || designDraft.id,
+      name: $('#designName').value.trim() || 'My custom design',
+      primary: color('Primary'),
+      accent: color('Accent'),
+      paper: color('Paper'),
+      ink: color('Ink'),
+      fontPair: $('#designFont').value,
+      cornerStyle: $('#designCorners').value,
+      density: $('#designDensity').value,
+      coverStyle: $('#designCover').value,
+      dayLayout: $('#designDayLayout').value,
+      showCover: $('#showCover').checked,
+      showHighlights: $('#showHighlights').checked,
+      showPricing: $('#showPricing').checked,
+      showNotes: $('#showNotes').checked,
+      showClosing: $('#showClosing').checked,
+      showPageNumbers: $('#showPageNumbers').checked,
+      sectionOrder: designDraft.sectionOrder
+    });
+  }
+
+  function renderSectionOrder() {
+    $('#sectionOrder').innerHTML = designDraft.sectionOrder.map((section, index, sections) => `<div class="section-order-row">
+      <span class="section-grip">••</span><strong>${escapeHtml(Designs.SECTION_LABELS[section])}</strong>
+      <span class="section-move"><button type="button" data-move-section="${section}" data-direction="up" ${index === 0 ? 'disabled' : ''} aria-label="Move up">↑</button><button type="button" data-move-section="${section}" data-direction="down" ${index === sections.length - 1 ? 'disabled' : ''} aria-label="Move down">↓</button></span>
+    </div>`).join('');
+  }
+
+  function renderDesignPreview() {
+    const design = Designs.normalize(designDraft);
+    const pair = Designs.FONT_PAIRS[design.fontPair];
+    const radius = design.cornerStyle === 'sharp' ? '1px' : design.cornerStyle === 'round' ? '18px' : '8px';
+    $('#designPreviewName').textContent = design.name;
+    $('#designPreview').innerHTML = `<div class="mini-pdf" data-cover="${design.coverStyle}" style="--mini-primary:${design.primary};--mini-accent:${design.accent};--mini-paper:${design.paper};--mini-ink:${design.ink};--mini-on-primary:${contrastText(design.primary)};--mini-heading:${pair.heading};--mini-radius:${radius}">
+      ${design.showCover ? `<div class="mini-cover"><div class="mini-cover-image"></div><div class="mini-cover-content"><i class="mini-logo"></i><span class="mini-kicker">Tailored journey</span><h3>${escapeHtml(design.name)}</h3></div></div>` : ''}
+      <div class="mini-body"><span>Journey overview</span><h4>Made beautifully yours</h4><div class="mini-cards"><i></i><i></i><i></i></div><i class="mini-rule"></i></div>
+    </div>`;
+  }
+
+  function selectDesign(id) {
+    selectedDesignId = id;
+    designDraft = Designs.find(id, state.designs);
+    fillDesignForm();
+    renderDesignGallery();
+  }
+
+  function newCustomDesign() {
+    const base = readDesignForm();
+    designDraft = Designs.createCustom(base, `Custom ${base.name}`);
+    selectedDesignId = designDraft.id;
+    fillDesignForm();
+    renderDesignGallery();
+    $('#designName').select();
+  }
+
+  function saveDesign(event) {
+    event.preventDefault();
+    let design = readDesignForm();
+    if (!$('#designName').value.trim()) return showToast('Give your design a name.');
+    const invalidColor = ['Primary', 'Accent', 'Paper', 'Ink'].find(key => !/^#[0-9a-f]{6}$/i.test($(`#design${key}Text`).value.trim()));
+    if (invalidColor) {
+      $(`#design${invalidColor}Text`).focus();
+      return showToast('Use six-digit colors such as #173f32.');
+    }
+    if (design.builtIn || !state.designs.some(item => item.id === design.id)) {
+      design = Designs.createCustom(design, design.name === Designs.find(selectedDesignId, state.designs).name ? `${design.name} Custom` : design.name);
+      state.designs.push(design);
+    } else {
+      design.builtIn = false;
+      design.updatedAt = new Date().toISOString();
+      state.designs[state.designs.findIndex(item => item.id === design.id)] = design;
+    }
+    selectedDesignId = design.id;
+    designDraft = design;
+    saveState('Custom design saved');
+    renderDesignStudio();
+  }
+
+  function setDefaultDesign() {
+    if (!Designs.all(state.designs).some(design => design.id === selectedDesignId)) return showToast('Save this custom design first.');
+    state.settings.defaultDesignId = selectedDesignId;
+    saveState('Default PDF design updated');
+    renderDesignStudio();
+  }
+
+  function deleteDesign() {
+    const design = state.designs.find(item => item.id === selectedDesignId);
+    if (!design || !confirm(`Delete “${design.name}”? Journeys using it will switch to the default design.`)) return;
+    state.designs = state.designs.filter(item => item.id !== design.id);
+    if (state.settings.defaultDesignId === design.id) state.settings.defaultDesignId = 'editorial-forest';
+    state.tours.forEach(tour => { if (tour.designId === design.id) tour.designId = state.settings.defaultDesignId; });
+    selectedDesignId = state.settings.defaultDesignId;
+    designDraft = Designs.find(selectedDesignId, state.designs);
+    saveState('Custom design deleted');
+    renderDesignStudio();
+  }
+
+  function updateDesignDraft() {
+    designDraft = { ...readDesignForm(), builtIn: Boolean(designDraft.builtIn) };
+    renderSectionOrder();
+    renderDesignPreview();
+  }
+
+  function openPreview(id, designOverride = null) {
     const tour = state.tours.find(item => item.id === id);
     if (!tour) return;
+    const design = Designs.normalize(designOverride || Designs.find(tour.designId || state.settings.defaultDesignId, state.designs));
     const cover = safeImage(tour.coverImage || tour.days?.find(day => safeImage(day.image))?.image);
     const customer = tour.customerName || 'Our valued guest';
     const overview = `<section class="pdf-page">
@@ -502,7 +695,7 @@
           <div class="pdf-overview-card"><span>Travel dates</span><strong>${escapeHtml(tour.travelDates || 'Flexible dates')}</strong></div>
         </div>
         <div class="pdf-route-box"><span>The route</span><p>${escapeHtml(tour.locations || 'A route tailored around you')}</p></div>
-        <div class="highlight-grid">${normalizeLines(tour.highlights).map(item => `<div class="highlight-card">${escapeHtml(item)}</div>`).join('') || '<div class="highlight-card">Tailored experiences throughout your journey</div>'}</div>
+        ${design.showHighlights ? `<div class="highlight-grid">${normalizeLines(tour.highlights).map(item => `<div class="highlight-card">${escapeHtml(item)}</div>`).join('') || '<div class="highlight-card">Tailored experiences throughout your journey</div>'}</div>` : ''}
       </div>
     </section>`;
 
@@ -526,8 +719,8 @@
           <div class="package-box included"><h3>What is included</h3><ul>${listHtml(tour.inclusions, 'included')}</ul></div>
           <div class="package-box excluded"><h3>Not included</h3><ul>${listHtml(tour.exclusions, 'excluded')}</ul></div>
         </div>
-        <div class="price-panel"><span>Package investment</span><strong>${escapeHtml(currency(tour.priceAmount, tour.priceCurrency))}</strong></div>
-        <div class="notes-panel"><h3>Important notes</h3><p>${escapeHtml(tour.importantNotes || 'Your itinerary can be refined before confirmation. Final availability and rates are confirmed at the time of booking.')}</p></div>
+        ${design.showPricing ? `<div class="price-panel"><span>Package investment</span><strong>${escapeHtml(currency(tour.priceAmount, tour.priceCurrency))}</strong></div>` : ''}
+        ${design.showNotes ? `<div class="notes-panel"><h3>Important notes</h3><p>${escapeHtml(tour.importantNotes || 'Your itinerary can be refined before confirmation. Final availability and rates are confirmed at the time of booking.')}</p></div>` : ''}
       </div>
     </section>`;
 
@@ -539,9 +732,7 @@
       <div class="pdf-contact">${escapeHtml(state.settings.contact || state.settings.companyName)}</div>
     </section>`;
 
-    $('#previewModalTitle').textContent = tour.tourName;
-    $('#itineraryDocument').style.setProperty('--doc-brand', state.settings.brandColor);
-    $('#itineraryDocument').innerHTML = `<section class="pdf-page pdf-cover">
+    const coverPage = `<section class="pdf-page pdf-cover">
       ${cover ? `<div class="pdf-cover-image"><img src="${escapeHtml(cover)}" alt="${escapeHtml(tour.tourName)}"><div class="pdf-cover-overlay"></div></div>` : ''}
       <div class="pdf-cover-content">
         <div class="pdf-brand">${logoHtml('brand-logo')}<span>${escapeHtml(state.settings.companyName)}</span></div>
@@ -552,7 +743,29 @@
           <div><span>Reference</span><strong>${escapeHtml(tour.packageId || '')}</strong></div>
         </div>
       </div>
-    </section>${overview}${dayPages}${packagePage}${closing}`;
+    </section>`;
+    const orderedSections = { overview, days: dayPages, package: packagePage };
+    const documentHtml = `${design.showCover ? coverPage : ''}${design.sectionOrder.map(section => orderedSections[section]).join('')}${design.showClosing ? closing : ''}`;
+    const fontPair = Designs.FONT_PAIRS[design.fontPair];
+    const documentElement = $('#itineraryDocument');
+
+    $('#previewModalTitle').textContent = tour.tourName;
+    documentElement.style.setProperty('--doc-brand', design.primary);
+    documentElement.style.setProperty('--doc-on-primary', contrastText(design.primary));
+    documentElement.style.setProperty('--doc-accent', design.accent);
+    documentElement.style.setProperty('--doc-paper', design.paper);
+    documentElement.style.setProperty('--doc-ink', design.ink);
+    documentElement.style.setProperty('--doc-heading', fontPair.heading);
+    documentElement.style.setProperty('--doc-body', fontPair.body);
+    documentElement.dataset.cover = design.coverStyle;
+    documentElement.dataset.dayLayout = design.dayLayout;
+    documentElement.dataset.density = design.density;
+    documentElement.dataset.corners = design.cornerStyle;
+    documentElement.innerHTML = documentHtml;
+    if (design.showPageNumbers) {
+      const pages = $$('.pdf-page', documentElement);
+      pages.forEach((page, index) => page.insertAdjacentHTML('beforeend', `<span class="pdf-page-number">${index + 1} / ${pages.length}</span>`));
+    }
     $('#previewModal').hidden = false;
     document.body.classList.add('modal-open');
     $('#closePreview').focus();
@@ -595,16 +808,20 @@
       const parsed = JSON.parse(await file.text());
       if (!parsed || !Array.isArray(parsed.tours) || !parsed.settings) throw new Error('Invalid backup');
       if (!confirm(`Import ${parsed.tours.length} itineraries? This replaces the current browser workspace.`)) return;
-      state = {
-        version: 1,
+      state = migrateState({
+        version: 2,
         settings: {
           companyName: String(parsed.settings.companyName || 'Goali Tours').slice(0, 160),
           contact: String(parsed.settings.contact || '').slice(0, 240),
           brandColor: /^#[0-9a-f]{6}$/i.test(parsed.settings.brandColor) ? parsed.settings.brandColor : '#173f32',
-          logo: safeImage(parsed.settings.logo)
+          logo: safeImage(parsed.settings.logo),
+          defaultDesignId: String(parsed.settings.defaultDesignId || 'editorial-forest')
         },
+        designs: Array.isArray(parsed.designs) ? parsed.designs : [],
         tours: parsed.tours.map(item => ({ ...item, id: String(item.id || uid()), status: item.status === 'recycled' ? 'recycled' : 'active' }))
-      };
+      });
+      selectedDesignId = state.settings.defaultDesignId;
+      designDraft = Designs.find(selectedDesignId, state.designs);
       saveState('Workspace imported successfully');
       setView('dashboard');
     } catch (error) {
@@ -651,6 +868,24 @@
 
   function bindEvents() {
     document.addEventListener('click', event => {
+      const designChoice = event.target.closest('[data-select-design]');
+      if (designChoice) {
+        selectDesign(designChoice.dataset.selectDesign);
+        return;
+      }
+      const sectionMove = event.target.closest('[data-move-section]');
+      if (sectionMove) {
+        const index = designDraft.sectionOrder.indexOf(sectionMove.dataset.moveSection);
+        const nextIndex = sectionMove.dataset.direction === 'up' ? index - 1 : index + 1;
+        if (index >= 0 && nextIndex >= 0 && nextIndex < designDraft.sectionOrder.length) {
+          const order = [...designDraft.sectionOrder];
+          [order[index], order[nextIndex]] = [order[nextIndex], order[index]];
+          designDraft = { ...readDesignForm(), sectionOrder: order };
+          renderSectionOrder();
+          renderDesignPreview();
+        }
+        return;
+      }
       const jump = event.target.closest('[data-view-jump]');
       if (jump) {
         if (jump.dataset.viewJump === 'editor') resetEditor();
@@ -685,6 +920,23 @@
 
     $('#tourForm').addEventListener('submit', saveTour);
     $('#brandForm').addEventListener('submit', saveBrand);
+    $('#designForm').addEventListener('submit', saveDesign);
+    $('#newDesign').addEventListener('click', newCustomDesign);
+    $('#setDefaultDesign').addEventListener('click', setDefaultDesign);
+    $('#deleteDesign').addEventListener('click', deleteDesign);
+    $('#previewSampleDesign').addEventListener('click', () => {
+      const sample = state.tours.find(tour => tour.status !== 'recycled');
+      if (!sample) return showToast('Create an itinerary first to preview this design.');
+      openPreview(sample.id, readDesignForm());
+    });
+    $('#designForm').addEventListener('input', event => {
+      const colorPicker = event.target.id.match(/^design(Primary|Accent|Paper|Ink)$/);
+      const colorText = event.target.id.match(/^design(Primary|Accent|Paper|Ink)Text$/);
+      if (colorPicker) $(`#design${colorPicker[1]}Text`).value = event.target.value;
+      if (colorText && /^#[0-9a-f]{6}$/i.test(event.target.value)) $(`#design${colorText[1]}`).value = event.target.value;
+      updateDesignDraft();
+    });
+    $('#designForm').addEventListener('change', updateDesignDraft);
     $('#searchTours').addEventListener('input', renderDashboard);
     $('#categoryFilter').addEventListener('change', renderDashboard);
     $('#mobileMenu').addEventListener('click', openMobileMenu);
