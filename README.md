@@ -13,6 +13,9 @@ Open the published GitHub Pages site:
 - Create, edit, duplicate, archive, restore, and delete tour proposals
 - Build day-by-day itineraries with customer details, pricing, notes, and images
 - Upload a company logo and automatically select a matching brand color
+- Choose from four professional PDF designs or save reusable custom designs
+- Customize PDF colors, fonts, spacing, corners, cover style, day layout, section order, and visible content
+- Assign a different saved design to each itinerary and choose a workspace default
 - Preview a branded, page-safe A4 itinerary
 - Use **Print / Save PDF** for reliable PDF export without Dompdf
 - Search and filter the itinerary library
@@ -21,7 +24,7 @@ Open the published GitHub Pages site:
 
 ## Storage
 
-All company settings, tours, and uploaded images are saved in the browser's `localStorage`. No PHP, MySQL, server, account, or setup is required.
+All company settings, tours, custom designs, and uploaded images are saved in the browser's `localStorage`. No PHP, MySQL, server, account, or setup is required.
 
 Browser data is specific to the device and browser profile. Use **Export backup** before clearing browser data or moving to another computer, then use **Import backup** on the new device.
 

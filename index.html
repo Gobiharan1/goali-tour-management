@@ -16,6 +16,8 @@
   <meta name="twitter:image" content="https://gobiharan1.github.io/goali-tour-management/public/og.png">
   <title>Goali Tours — Itinerary Studio</title>
   <link rel="stylesheet" href="assets/css/browser-app.css">
+  <link rel="stylesheet" href="assets/css/design-studio.css">
+  <script defer src="assets/js/designs.js"></script>
   <script defer src="assets/js/app.js"></script>
 </head>
 <body>
@@ -41,6 +43,9 @@
         </button>
         <button class="nav-item" data-view="brand" type="button">
           <span class="nav-icon">◇</span><span>Brand settings</span>
+        </button>
+        <button class="nav-item" data-view="design" type="button">
+          <span class="nav-icon">▦</span><span>Design studio</span>
         </button>
       </nav>
 
@@ -124,6 +129,7 @@
               <label class="field wide"><span>Tour name *</span><input id="tourName" required placeholder="Southern coast & tea country"></label>
               <label class="field"><span>Package category</span><select id="tourCategory"></select></label>
               <label class="field"><span>Activity level</span><select id="activityLevel"><option>Easy</option><option selected>Intermediate</option><option>Hard</option></select></label>
+              <label class="field"><span>Itinerary design</span><select id="tourDesign"></select></label>
               <label class="field"><span>Days</span><input id="durationDays" type="number" min="1" max="30" value="5"></label>
               <label class="field"><span>Nights</span><input id="durationNights" type="number" min="0" max="30" value="4"></label>
             </div>
@@ -222,6 +228,94 @@
             </div>
           </aside>
         </form>
+      </section>
+
+      <section id="designView" class="view" aria-labelledby="designTitle">
+        <div class="page-head compact-head design-page-head">
+          <div>
+            <span class="eyebrow">Creative control</span>
+            <h1 id="designTitle">Design studio</h1>
+            <p>Choose a starting style, customize every visual detail, and save your own reusable PDF designs.</p>
+          </div>
+          <button id="newDesign" class="button primary" type="button">New custom design ＋</button>
+        </div>
+
+        <section class="design-library-section">
+          <div class="section-heading split">
+            <div><h2>Design library</h2><p>Built-in themes and your saved custom designs.</p></div>
+            <span id="defaultDesignBadge" class="default-design-badge">Default: Editorial Forest</span>
+          </div>
+          <div id="designGallery" class="design-gallery"></div>
+        </section>
+
+        <div class="design-workspace">
+          <form id="designForm" class="design-controls">
+            <input id="designId" type="hidden">
+            <div class="design-control-head">
+              <div><span class="eyebrow">Selected design</span><h2>Customize the style</h2></div>
+              <span id="designTypeBadge" class="pill">Built-in</span>
+            </div>
+
+            <label class="field"><span>Design name</span><input id="designName" maxlength="60" required></label>
+
+            <fieldset class="control-group">
+              <legend>Color palette</legend>
+              <div class="design-color-grid">
+                <label><span>Primary</span><span class="design-color-input"><input id="designPrimary" type="color"><input id="designPrimaryText" maxlength="7"></span></label>
+                <label><span>Accent</span><span class="design-color-input"><input id="designAccent" type="color"><input id="designAccentText" maxlength="7"></span></label>
+                <label><span>Paper</span><span class="design-color-input"><input id="designPaper" type="color"><input id="designPaperText" maxlength="7"></span></label>
+                <label><span>Text</span><span class="design-color-input"><input id="designInk" type="color"><input id="designInkText" maxlength="7"></span></label>
+              </div>
+            </fieldset>
+
+            <fieldset class="control-group">
+              <legend>Typography & shape</legend>
+              <div class="form-grid">
+                <label class="field"><span>Font pairing</span><select id="designFont"></select></label>
+                <label class="field"><span>Corner style</span><select id="designCorners"><option value="sharp">Sharp</option><option value="soft">Soft</option><option value="round">Rounded</option></select></label>
+                <label class="field"><span>Page spacing</span><select id="designDensity"><option value="airy">Airy</option><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></label>
+              </div>
+            </fieldset>
+
+            <fieldset class="control-group">
+              <legend>PDF layouts</legend>
+              <div class="form-grid">
+                <label class="field"><span>Cover design</span><select id="designCover"><option value="full">Full photo</option><option value="split">Split editorial</option><option value="minimal">Minimal frame</option><option value="bold">Bold color</option></select></label>
+                <label class="field"><span>Daily story layout</span><select id="designDayLayout"><option value="top">Image above</option><option value="split">Image beside text</option><option value="text">Text focused</option></select></label>
+              </div>
+            </fieldset>
+
+            <fieldset class="control-group">
+              <legend>PDF content</legend>
+              <div class="toggle-grid">
+                <label class="toggle-row"><input id="showCover" type="checkbox"><span>Cover page</span></label>
+                <label class="toggle-row"><input id="showHighlights" type="checkbox"><span>Highlights</span></label>
+                <label class="toggle-row"><input id="showPricing" type="checkbox"><span>Pricing</span></label>
+                <label class="toggle-row"><input id="showNotes" type="checkbox"><span>Important notes</span></label>
+                <label class="toggle-row"><input id="showClosing" type="checkbox"><span>Closing page</span></label>
+                <label class="toggle-row"><input id="showPageNumbers" type="checkbox"><span>Page numbers</span></label>
+              </div>
+            </fieldset>
+
+            <fieldset class="control-group">
+              <legend>Section order</legend>
+              <p class="control-help">Move the main PDF sections into the order you prefer.</p>
+              <div id="sectionOrder" class="section-order-list"></div>
+            </fieldset>
+
+            <div class="design-actions">
+              <button id="saveDesign" class="button primary" type="submit">Save as custom design</button>
+              <button id="setDefaultDesign" class="button secondary" type="button">Set as default</button>
+              <button id="deleteDesign" class="text-button danger-text" type="button" hidden>Delete design</button>
+            </div>
+          </form>
+
+          <aside class="design-live-panel">
+            <div class="design-live-head"><div><span class="eyebrow">Live PDF preview</span><h2 id="designPreviewName">Editorial Forest</h2></div><span class="live-indicator"><i></i> Live</span></div>
+            <div id="designPreview" class="design-preview-canvas"></div>
+            <button id="previewSampleDesign" class="button secondary" type="button">Open full PDF preview</button>
+          </aside>
+        </div>
       </section>
     </main>
   </div>
