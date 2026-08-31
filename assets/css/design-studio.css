@@ -276,6 +276,27 @@
 .itinerary-document[data-day-layout='text'] .day-story { border: 0; border-top: 5px solid var(--doc-accent); border-radius: 0; }
 .itinerary-document[data-day-layout='text'] .day-story-body { padding-left: 0; padding-right: 0; }
 .pdf-page-number { position: absolute; right: var(--doc-pad-x); bottom: 24px; color: color-mix(in srgb, var(--doc-ink) 48%, transparent); font-size: 9px; letter-spacing: .12em; }
+.pdf-qr-panel {
+  display: grid;
+  margin-top: 18px;
+  padding: 17px;
+  border: 1px solid color-mix(in srgb, var(--doc-brand) 20%, transparent);
+  border-radius: var(--doc-radius);
+  grid-template-columns: 96px minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+  background: color-mix(in srgb, var(--doc-paper) 92%, var(--doc-brand));
+  break-inside: avoid;
+}
+.pdf-qr-panel img { width: 96px; height: 96px; padding: 5px; border-radius: 8px; background: #fff; }
+.pdf-qr-panel span { color: var(--doc-brand); font-size: 8px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+.pdf-qr-panel h3 { margin: 4px 0 5px; font-family: var(--doc-heading); font-size: 21px; }
+.pdf-qr-panel p { margin: 0; color: color-mix(in srgb, var(--doc-ink) 64%, transparent); font-size: 10px; line-height: 1.5; }
+.itinerary-document.pdf-export-mode,
+.itinerary-document.pdf-export-mode .pdf-page,
+.itinerary-document.pdf-export-mode .pdf-cover,
+.itinerary-document.pdf-export-mode .pdf-cover-content,
+.itinerary-document.pdf-export-mode .pdf-closing { width: 210mm; min-height: 297mm; height: 297mm; }
 .itinerary-document .pdf-cover .pdf-page-number { color: rgba(255,255,255,.68); }
 .itinerary-document .pdf-closing .pdf-page-number { color: color-mix(in srgb, var(--doc-on-primary) 68%, transparent); }
 .itinerary-document[data-cover='split'] .pdf-cover .pdf-page-number,
