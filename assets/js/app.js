@@ -821,7 +821,7 @@
         </div>
         ${design.showPricing ? `<div class="price-panel"><span>Package investment</span><strong>${escapeHtml(currency(tour.priceAmount, tour.priceCurrency))}</strong></div>` : ''}
         ${design.showNotes ? `<div class="notes-panel"><h3>Important notes</h3><p>${escapeHtml(tour.importantNotes || 'Your itinerary can be refined before confirmation. Final availability and rates are confirmed at the time of booking.')}</p></div>` : ''}
-        ${qrImage ? `<div class="pdf-qr-panel"><img src="${qrImage}" alt="QR code to open this itinerary on a phone"><div><span>Take this journey with you</span><h3>Scan to read on your phone</h3><p>Open a secure, read-only copy of this itinerary and download the PDF again whenever you need it.</p></div></div>` : ''}
+        ${qrImage ? `<div class="pdf-qr-panel"><img src="${qrImage}" alt="QR code to open this itinerary on a phone"><div><span>Take this journey with you</span><h3>Scan to read on your phone</h3><p>Open a read-only copy of this itinerary and download the PDF again whenever you need it.</p></div></div>` : ''}
       </div>
     </section>`;
 
@@ -931,7 +931,7 @@
       document.execCommand('copy');
       field.remove();
     }
-    showToast('QR sharing link copied');
+    showToast('QR link copied — anyone with it can read the itinerary');
   }
 
   async function openSharedPreviewFromUrl() {
