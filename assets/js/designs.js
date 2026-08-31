@@ -95,6 +95,48 @@
       dayLayout: 'text',
       density: 'compact',
       cornerStyle: 'sharp'
+    },
+    {
+      ...BASE_DESIGN,
+      id: 'tropical-magazine',
+      name: 'Tropical Magazine',
+      primary: '#075a55',
+      accent: '#c9ec5b',
+      paper: '#f6f1e8',
+      ink: '#15342d',
+      fontPair: 'modern',
+      coverStyle: 'magazine',
+      dayLayout: 'collage',
+      density: 'comfortable',
+      cornerStyle: 'round'
+    },
+    {
+      ...BASE_DESIGN,
+      id: 'gallery-campaign',
+      name: 'Gallery Campaign',
+      primary: '#087d73',
+      accent: '#d96c32',
+      paper: '#fffdf8',
+      ink: '#17352f',
+      fontPair: 'modern',
+      coverStyle: 'campaign',
+      dayLayout: 'poster',
+      density: 'airy',
+      cornerStyle: 'sharp'
+    },
+    {
+      ...BASE_DESIGN,
+      id: 'botanical-organic',
+      name: 'Botanical Organic',
+      primary: '#325948',
+      accent: '#e36e35',
+      paper: '#f4ecdc',
+      ink: '#181c18',
+      fontPair: 'elegant',
+      coverStyle: 'organic',
+      dayLayout: 'organic',
+      density: 'airy',
+      cornerStyle: 'round'
     }
   ];
 
@@ -113,8 +155,8 @@
     merged.paper = validHex(merged.paper, BASE_DESIGN.paper);
     merged.ink = validHex(merged.ink, BASE_DESIGN.ink);
     merged.fontPair = FONT_PAIRS[merged.fontPair] ? merged.fontPair : BASE_DESIGN.fontPair;
-    merged.coverStyle = ['full', 'split', 'minimal', 'bold'].includes(merged.coverStyle) ? merged.coverStyle : 'full';
-    merged.dayLayout = ['top', 'split', 'text'].includes(merged.dayLayout) ? merged.dayLayout : 'top';
+    merged.coverStyle = ['full', 'split', 'minimal', 'bold', 'magazine', 'campaign', 'organic'].includes(merged.coverStyle) ? merged.coverStyle : 'full';
+    merged.dayLayout = ['top', 'split', 'text', 'collage', 'poster', 'organic'].includes(merged.dayLayout) ? merged.dayLayout : 'top';
     merged.density = ['airy', 'comfortable', 'compact'].includes(merged.density) ? merged.density : 'comfortable';
     merged.cornerStyle = ['sharp', 'soft', 'round'].includes(merged.cornerStyle) ? merged.cornerStyle : 'soft';
     const requestedOrder = Array.isArray(merged.sectionOrder) ? merged.sectionOrder : BASE_DESIGN.sectionOrder;
