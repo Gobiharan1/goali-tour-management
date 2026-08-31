@@ -620,7 +620,7 @@
     const defaultDesign = Designs.find(state.settings.defaultDesignId, state.designs);
     $('#defaultDesignBadge').textContent = `Default: ${defaultDesign.name}`;
     gallery.innerHTML = designs.map(design => `<button class="design-card ${design.id === selectedDesignId ? 'active' : ''}" type="button" data-select-design="${escapeHtml(design.id)}">
-      <span class="design-card-art" style="--card-primary:${design.primary};--card-accent:${design.accent};--card-paper:${design.paper};--card-ink:${design.ink}"><span class="design-card-lines"><i></i><i></i><i></i></span></span>
+      <span class="design-card-art" data-style="${design.coverStyle}" style="--card-primary:${design.primary};--card-accent:${design.accent};--card-paper:${design.paper};--card-ink:${design.ink}"><span class="design-card-lines"><i></i><i></i><i></i></span></span>
       <span class="design-card-meta"><strong>${escapeHtml(design.name)}</strong><span>${design.builtIn ? 'Built-in design' : 'Your custom design'}${design.id === state.settings.defaultDesignId ? ' · Default' : ''}</span></span>
     </button>`).join('');
   }
@@ -774,6 +774,7 @@
     const design = Designs.normalize(designOverride || sharedSnapshot?.design || Designs.find(tour.designId || state.settings.defaultDesignId, state.designs));
     const brand = sharedSnapshot?.brand || state.settings;
     const cover = safeImage(tour.coverImage || tour.days?.find(day => safeImage(day.image))?.image);
+    const storyImages = [...new Set([cover, ...(tour.days || []).map(day => safeImage(day.image)).filter(Boolean)].filter(Boolean))];
     const customer = tour.customerName || 'Our valued guest';
     let shareUrl = sharedSnapshot?.shareUrl || await createShareUrl(tour, design, brand);
     let qrImage = '';
@@ -785,7 +786,7 @@
     }
     activeShareUrl = shareUrl;
     activePreviewFileName = `${String(tour.tourName || 'goali-itinerary').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 70) || 'goali-itinerary'}.pdf`;
-    const overview = `<section class="pdf-page">
+    const overview = `<section class="pdf-page pdf-overview-page">
       <div class="pdf-page-inner">
         <header class="pdf-section-head"><p class="pdf-kicker">Your Sri Lankan story</p><h2>Journey overview</h2></header>
         <p class="pdf-intro">${escapeHtml(tour.customerDetails || `A thoughtfully designed journey for ${customer}, balancing discovery, comfort, and space to enjoy each place.`)}</p>
@@ -796,23 +797,27 @@
         </div>
         <div class="pdf-route-box"><span>The route</span><p>${escapeHtml(tour.locations || 'A route tailored around you')}</p></div>
         ${design.showHighlights ? `<div class="highlight-grid">${normalizeLines(tour.highlights).map(item => `<div class="highlight-card">${escapeHtml(item)}</div>`).join('') || '<div class="highlight-card">Tailored experiences throughout your journey</div>'}</div>` : ''}
+        ${storyImages.length ? `<div class="pdf-overview-visuals">${storyImages.slice(0, 3).map((image, index) => `<figure><img src="${escapeHtml(image)}" alt="Journey moment ${index + 1}"></figure>`).join('')}</div>` : ''}
       </div>
     </section>`;
 
     const dayPages = (tour.days || []).map((day, index) => {
       const image = safeImage(day.image);
-      return `<section class="pdf-page">
+      const secondaryImage = safeImage(tour.days[(index + 1) % tour.days.length]?.image);
+      return `<section class="pdf-page pdf-day-page">
         <div class="pdf-page-inner">
           <header class="pdf-section-head"><p class="pdf-kicker">Day ${index + 1} of ${tour.days.length}</p><h2>${escapeHtml(day.title || `Day ${index + 1}`)}</h2></header>
           <article class="day-story">
             ${image ? `<div class="day-story-image"><img src="${escapeHtml(image)}" alt="${escapeHtml(day.title || `Day ${index + 1}`)}"></div>` : ''}
+            ${secondaryImage && secondaryImage !== image ? `<div class="day-story-secondary"><img src="${escapeHtml(secondaryImage)}" alt="A glimpse of the journey ahead"></div>` : ''}
+            <div class="day-story-ordinal" aria-hidden="true">${String(index + 1).padStart(2, '0')}</div>
             <div class="day-story-body"><span>Day ${index + 1}</span><h3>${escapeHtml(day.title || `Day ${index + 1}`)}</h3><p>${escapeHtml(day.details || 'This day is ready to be personalized around your interests and preferred pace.')}</p></div>
           </article>
         </div>
       </section>`;
     }).join('');
 
-    const packagePage = `<section class="pdf-page">
+    const packagePage = `<section class="pdf-page pdf-package-page">
       <div class="pdf-page-inner">
         <header class="pdf-section-head"><p class="pdf-kicker">The package</p><h2>Everything at a glance</h2></header>
         <div class="package-columns">
@@ -835,6 +840,8 @@
 
     const coverPage = `<section class="pdf-page pdf-cover">
       ${cover ? `<div class="pdf-cover-image"><img src="${escapeHtml(cover)}" alt="${escapeHtml(tour.tourName)}"><div class="pdf-cover-overlay"></div></div>` : ''}
+      <div class="pdf-cover-shape" aria-hidden="true"></div>
+      ${storyImages.length > 1 ? `<div class="pdf-cover-gallery">${storyImages.slice(1, 4).map((image, index) => `<figure><img src="${escapeHtml(image)}" alt="Journey preview ${index + 1}"></figure>`).join('')}</div>` : ''}
       <div class="pdf-cover-content">
         <div class="pdf-brand">${logoHtml('brand-logo', brand)}<span>${escapeHtml(brand.companyName)}</span></div>
         <div class="pdf-cover-main"><p class="pdf-kicker">Tailored for ${escapeHtml(customer)}</p><h1>${escapeHtml(tour.tourName)}</h1><p class="pdf-cover-route">${escapeHtml(tour.locations || 'A journey made for you')}</p></div>

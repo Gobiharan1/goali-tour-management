@@ -13,7 +13,8 @@ Open the published GitHub Pages site:
 - Create, edit, duplicate, archive, restore, and delete tour proposals
 - Build day-by-day itineraries with customer details, pricing, notes, and images
 - Upload a company logo and automatically select a matching brand color
-- Choose from four professional PDF designs or save reusable custom designs
+- Choose from seven professional PDF designs or save reusable custom designs
+- Use premium travel-magazine, campaign-split, and organic-editorial compositions inspired by modern brochure design
 - Customize PDF colors, fonts, spacing, corners, cover style, day layout, section order, and visible content
 - Assign a different saved design to each itinerary and choose a workspace default
 - Preview a branded, page-safe A4 itinerary
