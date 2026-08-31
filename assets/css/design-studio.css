@@ -430,6 +430,10 @@
 .itinerary-document.pdf-export-mode .pdf-cover,
 .itinerary-document.pdf-export-mode .pdf-cover-content,
 .itinerary-document.pdf-export-mode .pdf-closing { width: 210mm; min-height: 297mm; height: 297mm; }
+.itinerary-document.pdf-export-mode .pdf-page {
+  page-break-after: auto;
+  break-after: auto;
+}
 .itinerary-document .pdf-cover .pdf-page-number { color: rgba(255,255,255,.68); }
 .itinerary-document .pdf-closing .pdf-page-number { color: rgba(var(--doc-on-primary-rgb), .68); }
 .itinerary-document[data-cover='split'] .pdf-cover .pdf-page-number,
