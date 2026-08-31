@@ -856,13 +856,18 @@
     const documentHtml = `${design.showCover ? coverPage : ''}${design.sectionOrder.map(section => orderedSections[section]).join('')}${design.showClosing ? closing : ''}`;
     const fontPair = Designs.FONT_PAIRS[design.fontPair];
     const documentElement = $('#itineraryDocument');
+    const onPrimary = contrastText(design.primary);
 
     $('#previewModalTitle').textContent = sharedSnapshot ? `${tour.tourName} · Shared copy` : tour.tourName;
     documentElement.style.setProperty('--doc-brand', design.primary);
-    documentElement.style.setProperty('--doc-on-primary', contrastText(design.primary));
+    documentElement.style.setProperty('--doc-brand-rgb', hexToRgb(design.primary).join(', '));
+    documentElement.style.setProperty('--doc-on-primary', onPrimary);
+    documentElement.style.setProperty('--doc-on-primary-rgb', hexToRgb(onPrimary).join(', '));
     documentElement.style.setProperty('--doc-accent', design.accent);
+    documentElement.style.setProperty('--doc-accent-rgb', hexToRgb(design.accent).join(', '));
     documentElement.style.setProperty('--doc-paper', design.paper);
     documentElement.style.setProperty('--doc-ink', design.ink);
+    documentElement.style.setProperty('--doc-ink-rgb', hexToRgb(design.ink).join(', '));
     documentElement.style.setProperty('--doc-heading', fontPair.heading);
     documentElement.style.setProperty('--doc-body', fontPair.body);
     documentElement.dataset.cover = design.coverStyle;
