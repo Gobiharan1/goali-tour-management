@@ -63,6 +63,8 @@
   let draftCover = '';
   let selectedDesignId = state.settings.defaultDesignId;
   let designDraft = Designs.find(selectedDesignId, state.designs);
+  let activePreviewFileName = 'goali-itinerary.pdf';
+  let activeShareUrl = '';
   let toastTimer;
 
   const $ = (selector, root = document) => root.querySelector(selector);
@@ -519,9 +521,96 @@
     return normalized.map(item => `<li>${escapeHtml(item)}</li>`).join('');
   }
 
-  function logoHtml(className = 'brand-logo') {
-    const logo = safeImage(state.settings.logo);
-    return `<span class="${className}">${logo ? `<img src="${escapeHtml(logo)}" alt="${escapeHtml(state.settings.companyName)} logo">` : escapeHtml(initials())}</span>`;
+  function logoHtml(className = 'brand-logo', brand = state.settings) {
+    const logo = safeImage(brand.logo);
+    return `<span class="${className}">${logo ? `<img src="${escapeHtml(logo)}" alt="${escapeHtml(brand.companyName)} logo">` : escapeHtml(initials(brand.companyName))}</span>`;
+  }
+
+  function shareableImage(source = '') {
+    return String(source).startsWith('assets/uploads/') ? String(source) : '';
+  }
+
+  function snapshotTour(tour, compact = false) {
+    const limit = (value, max) => String(value || '').slice(0, max);
+    return {
+      packageId: limit(tour.packageId, 80),
+      tourName: limit(tour.tourName, 180),
+      category: limit(tour.category, 120),
+      activityLevel: limit(tour.activityLevel, 60),
+      durationDays: Number(tour.durationDays || 1),
+      durationNights: Number(tour.durationNights || 0),
+      customerName: limit(tour.customerName, 140),
+      travelDates: limit(tour.travelDates, 160),
+      customerDetails: limit(tour.customerDetails, compact ? 260 : 1800),
+      locations: limit(tour.locations, compact ? 220 : 900),
+      highlights: normalizeLines(tour.highlights).slice(0, compact ? 4 : 12).map(item => limit(item, compact ? 100 : 300)),
+      inclusions: normalizeLines(tour.inclusions).slice(0, compact ? 8 : 24).map(item => limit(item, compact ? 90 : 240)),
+      exclusions: normalizeLines(tour.exclusions).slice(0, compact ? 8 : 24).map(item => limit(item, compact ? 90 : 240)),
+      priceCurrency: limit(tour.priceCurrency, 8),
+      priceAmount: Number(tour.priceAmount || 0),
+      importantNotes: limit(tour.importantNotes, compact ? 240 : 1400),
+      coverImage: shareableImage(tour.coverImage),
+      days: (tour.days || []).slice(0, compact ? 12 : 30).map(day => ({
+        title: limit(day.title, 160),
+        details: limit(day.details, compact ? 260 : 1800),
+        image: shareableImage(day.image)
+      }))
+    };
+  }
+
+  function bytesToBase64Url(bytes) {
+    let binary = '';
+    for (let index = 0; index < bytes.length; index += 8192) binary += String.fromCharCode(...bytes.subarray(index, index + 8192));
+    return btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
+  }
+
+  function base64UrlToBytes(value) {
+    const base64 = value.replaceAll('-', '+').replaceAll('_', '/').padEnd(Math.ceil(value.length / 4) * 4, '=');
+    const binary = atob(base64);
+    return Uint8Array.from(binary, character => character.charCodeAt(0));
+  }
+
+  async function encodeSnapshot(snapshot) {
+    const source = new TextEncoder().encode(JSON.stringify(snapshot));
+    if (typeof CompressionStream === 'undefined') return `u.${bytesToBase64Url(source)}`;
+    const compressed = await new Response(new Blob([source]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer();
+    return `g.${bytesToBase64Url(new Uint8Array(compressed))}`;
+  }
+
+  async function decodeSnapshot(value) {
+    const [format, encoded] = String(value || '').split('.', 2);
+    if (!encoded) throw new Error('Invalid shared itinerary');
+    const bytes = base64UrlToBytes(encoded);
+    if (format === 'u') return JSON.parse(new TextDecoder().decode(bytes));
+    if (format !== 'g' || typeof DecompressionStream === 'undefined') throw new Error('This browser cannot open the compressed itinerary.');
+    const decompressed = await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+    return JSON.parse(new TextDecoder().decode(decompressed));
+  }
+
+  async function createShareUrl(tour, design, brand, compact = false) {
+    const snapshot = {
+      v: 1,
+      tour: snapshotTour(tour, compact),
+      design: Designs.normalize(design),
+      brand: {
+        companyName: String(brand.companyName || 'Goali Tours').slice(0, 160),
+        contact: String(brand.contact || '').slice(0, 240),
+        brandColor: /^#[0-9a-f]{6}$/i.test(brand.brandColor) ? brand.brandColor : design.primary,
+        logo: shareableImage(brand.logo)
+      }
+    };
+    const canonical = document.querySelector('meta[property="og:url"]')?.content || `${location.origin}${location.pathname}`;
+    return `${canonical.replace(/#.*$/, '')}#read=${await encodeSnapshot(snapshot)}`;
+  }
+
+  function qrDataUrl(value) {
+    const holder = document.createElement('div');
+    new QRCode(holder, { text: value, width: 220, height: 220, colorDark: '#14231c', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+    const canvas = holder.querySelector('canvas');
+    const image = holder.querySelector('img');
+    if (canvas) return canvas.toDataURL('image/png');
+    if (image?.src) return image.src;
+    throw new Error('QR code could not be generated');
   }
 
   function renderDesignGallery() {
@@ -679,12 +768,23 @@
     renderDesignPreview();
   }
 
-  function openPreview(id, designOverride = null) {
-    const tour = state.tours.find(item => item.id === id);
+  async function openPreview(id, designOverride = null, sharedSnapshot = null) {
+    const tour = sharedSnapshot?.tour || state.tours.find(item => item.id === id);
     if (!tour) return;
-    const design = Designs.normalize(designOverride || Designs.find(tour.designId || state.settings.defaultDesignId, state.designs));
+    const design = Designs.normalize(designOverride || sharedSnapshot?.design || Designs.find(tour.designId || state.settings.defaultDesignId, state.designs));
+    const brand = sharedSnapshot?.brand || state.settings;
     const cover = safeImage(tour.coverImage || tour.days?.find(day => safeImage(day.image))?.image);
     const customer = tour.customerName || 'Our valued guest';
+    let shareUrl = sharedSnapshot?.shareUrl || await createShareUrl(tour, design, brand);
+    let qrImage = '';
+    try {
+      qrImage = qrDataUrl(shareUrl);
+    } catch (_) {
+      shareUrl = await createShareUrl(tour, design, brand, true);
+      try { qrImage = qrDataUrl(shareUrl); } catch (error) { console.warn('QR generation failed.', error); }
+    }
+    activeShareUrl = shareUrl;
+    activePreviewFileName = `${String(tour.tourName || 'goali-itinerary').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 70) || 'goali-itinerary'}.pdf`;
     const overview = `<section class="pdf-page">
       <div class="pdf-page-inner">
         <header class="pdf-section-head"><p class="pdf-kicker">Your Sri Lankan story</p><h2>Journey overview</h2></header>
@@ -721,21 +821,22 @@
         </div>
         ${design.showPricing ? `<div class="price-panel"><span>Package investment</span><strong>${escapeHtml(currency(tour.priceAmount, tour.priceCurrency))}</strong></div>` : ''}
         ${design.showNotes ? `<div class="notes-panel"><h3>Important notes</h3><p>${escapeHtml(tour.importantNotes || 'Your itinerary can be refined before confirmation. Final availability and rates are confirmed at the time of booking.')}</p></div>` : ''}
+        ${qrImage ? `<div class="pdf-qr-panel"><img src="${qrImage}" alt="QR code to open this itinerary on a phone"><div><span>Take this journey with you</span><h3>Scan to read on your phone</h3><p>Open a secure, read-only copy of this itinerary and download the PDF again whenever you need it.</p></div></div>` : ''}
       </div>
     </section>`;
 
     const closing = `<section class="pdf-page pdf-closing">
-      ${logoHtml('brand-logo')}
-      <p class="pdf-kicker">${escapeHtml(state.settings.companyName)}</p>
+      ${logoHtml('brand-logo', brand)}
+      <p class="pdf-kicker">${escapeHtml(brand.companyName)}</p>
       <h2>Your next great story starts here.</h2>
       <p>Thank you for considering this journey. We would love to shape every detail around you.</p>
-      <div class="pdf-contact">${escapeHtml(state.settings.contact || state.settings.companyName)}</div>
+      <div class="pdf-contact">${escapeHtml(brand.contact || brand.companyName)}</div>
     </section>`;
 
     const coverPage = `<section class="pdf-page pdf-cover">
       ${cover ? `<div class="pdf-cover-image"><img src="${escapeHtml(cover)}" alt="${escapeHtml(tour.tourName)}"><div class="pdf-cover-overlay"></div></div>` : ''}
       <div class="pdf-cover-content">
-        <div class="pdf-brand">${logoHtml('brand-logo')}<span>${escapeHtml(state.settings.companyName)}</span></div>
+        <div class="pdf-brand">${logoHtml('brand-logo', brand)}<span>${escapeHtml(brand.companyName)}</span></div>
         <div class="pdf-cover-main"><p class="pdf-kicker">Tailored for ${escapeHtml(customer)}</p><h1>${escapeHtml(tour.tourName)}</h1><p class="pdf-cover-route">${escapeHtml(tour.locations || 'A journey made for you')}</p></div>
         <div class="pdf-cover-footer">
           <div><span>Duration</span><strong>${Number(tour.durationDays || 1)} days · ${Number(tour.durationNights || 0)} nights</strong></div>
@@ -749,7 +850,7 @@
     const fontPair = Designs.FONT_PAIRS[design.fontPair];
     const documentElement = $('#itineraryDocument');
 
-    $('#previewModalTitle').textContent = tour.tourName;
+    $('#previewModalTitle').textContent = sharedSnapshot ? `${tour.tourName} · Shared copy` : tour.tourName;
     documentElement.style.setProperty('--doc-brand', design.primary);
     documentElement.style.setProperty('--doc-on-primary', contrastText(design.primary));
     documentElement.style.setProperty('--doc-accent', design.accent);
@@ -774,6 +875,83 @@
   function closePreview() {
     $('#previewModal').hidden = true;
     document.body.classList.remove('modal-open');
+  }
+
+  function waitForDocumentImages(element) {
+    return Promise.all($$('img', element).map(image => image.complete
+      ? Promise.resolve()
+      : new Promise(resolve => {
+        image.addEventListener('load', resolve, { once: true });
+        image.addEventListener('error', resolve, { once: true });
+      })));
+  }
+
+  async function downloadPdf() {
+    const button = $('#downloadItinerary');
+    if (typeof html2pdf !== 'function') {
+      showToast('The PDF engine did not load. Use Print instead.');
+      return;
+    }
+    button.disabled = true;
+    button.textContent = 'Building PDF…';
+    $('#itineraryDocument').classList.add('pdf-export-mode');
+    try {
+      await document.fonts?.ready;
+      await waitForDocumentImages($('#itineraryDocument'));
+      await html2pdf().set({
+        margin: 0,
+        filename: activePreviewFileName,
+        image: { type: 'jpeg', quality: .96 },
+        html2canvas: { scale: 2, useCORS: true, allowTaint: false, logging: false, backgroundColor: null },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
+        pagebreak: { mode: ['css', 'legacy'], before: '.pdf-page + .pdf-page' }
+      }).from($('#itineraryDocument')).save();
+      showToast('PDF downloaded');
+    } catch (error) {
+      console.error(error);
+      showToast('Direct download failed. Print / Save PDF is still available.');
+    } finally {
+      $('#itineraryDocument').classList.remove('pdf-export-mode');
+      button.disabled = false;
+      button.textContent = 'Download PDF';
+    }
+  }
+
+  async function copyShareLink() {
+    if (!activeShareUrl) return showToast('Open an itinerary preview first.');
+    try {
+      await navigator.clipboard.writeText(activeShareUrl);
+    } catch (_) {
+      const field = document.createElement('textarea');
+      field.value = activeShareUrl;
+      field.style.position = 'fixed';
+      field.style.opacity = '0';
+      document.body.append(field);
+      field.select();
+      document.execCommand('copy');
+      field.remove();
+    }
+    showToast('QR sharing link copied');
+  }
+
+  async function openSharedPreviewFromUrl() {
+    if (!location.hash.startsWith('#read=')) return false;
+    try {
+      const snapshot = await decodeSnapshot(location.hash.slice(6));
+      if (snapshot?.v !== 1 || !snapshot.tour || !snapshot.design || !snapshot.brand) throw new Error('Invalid shared itinerary');
+      snapshot.tour.id = 'shared-itinerary';
+      snapshot.tour.status = 'shared';
+      snapshot.tour.days = Array.isArray(snapshot.tour.days) ? snapshot.tour.days : [];
+      snapshot.brand.companyName = String(snapshot.brand.companyName || 'Goali Tours').slice(0, 160);
+      snapshot.brand.contact = String(snapshot.brand.contact || '').slice(0, 240);
+      snapshot.brand.logo = safeImage(snapshot.brand.logo);
+      await openPreview('', snapshot.design, { ...snapshot, shareUrl: location.href });
+      return true;
+    } catch (error) {
+      console.error(error);
+      showToast('This shared itinerary link is damaged or incomplete.');
+      return false;
+    }
   }
 
   function saveBrand(event) {
@@ -943,6 +1121,8 @@
     $('#mobileClose').addEventListener('click', closeMobileMenu);
     $('#sidebarBackdrop').addEventListener('click', closeMobileMenu);
     $('#closePreview').addEventListener('click', closePreview);
+    $('#downloadItinerary').addEventListener('click', downloadPdf);
+    $('#copyShareLink').addEventListener('click', copyShareLink);
     $('#printItinerary').addEventListener('click', () => window.print());
     $('#exportBackup').addEventListener('click', exportBackup);
     $('#importBackup').addEventListener('change', event => event.target.files[0] && importBackup(event.target.files[0]));
@@ -1036,6 +1216,7 @@
     document.addEventListener('keydown', event => {
       if (event.key === 'Escape' && !$('#previewModal').hidden) closePreview();
     });
+    window.addEventListener('hashchange', openSharedPreviewFromUrl);
   }
 
   function init() {
@@ -1044,6 +1225,7 @@
     renderAll();
     bindEvents();
     setView('dashboard');
+    openSharedPreviewFromUrl();
   }
 
   init();

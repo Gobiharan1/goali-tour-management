@@ -17,6 +17,8 @@
   <title>Goali Tours — Itinerary Studio</title>
   <link rel="stylesheet" href="assets/css/browser-app.css">
   <link rel="stylesheet" href="assets/css/design-studio.css">
+  <script defer src="assets/vendor/qrcode.min.js"></script>
+  <script defer src="assets/vendor/html2pdf.bundle.min.js"></script>
   <script defer src="assets/js/designs.js"></script>
   <script defer src="assets/js/app.js"></script>
 </head>
@@ -324,7 +326,9 @@
     <div class="modal-bar">
       <div><span class="eyebrow">Document preview</span><strong id="previewModalTitle">Itinerary</strong></div>
       <div class="modal-actions">
-        <button id="printItinerary" class="button primary compact" type="button">Print / Save PDF</button>
+        <button id="copyShareLink" class="button secondary compact light-action" type="button">Copy QR link</button>
+        <button id="printItinerary" class="button secondary compact light-action" type="button">Print</button>
+        <button id="downloadItinerary" class="button primary compact" type="button">Download PDF</button>
         <button id="closePreview" class="icon-button light" type="button" aria-label="Close preview">×</button>
       </div>
     </div>
