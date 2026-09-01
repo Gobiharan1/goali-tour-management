@@ -370,7 +370,9 @@
       return `<article class="day-editor" data-day-index="${index}">
         <button class="remove-day" type="button" data-remove-day="${index}" aria-label="Remove day ${index + 1}">×</button>
         <div class="day-reorder-tools">
-          <button class="day-drag-handle" type="button" draggable="true" data-day-drag="${index}" aria-label="Drag Day ${index + 1} to reorder" title="Drag to reorder">⠿</button>
+          <button class="day-drag-handle" type="button" draggable="true" data-day-drag="${index}" aria-label="Drag Day ${index + 1} to reorder" title="Hold and drag to reorder">
+            <span aria-hidden="true">⠿</span><strong>Drag to reorder</strong><small>Day ${index + 1}</small>
+          </button>
           <span class="day-move-buttons">
             <button type="button" data-move-day="${index}" data-direction="up" aria-label="Move Day ${index + 1} up" ${index === 0 ? 'disabled' : ''}>↑</button>
             <button type="button" data-move-day="${index}" data-direction="down" aria-label="Move Day ${index + 1} down" ${index === draftDays.length - 1 ? 'disabled' : ''}>↓</button>
