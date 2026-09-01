@@ -200,19 +200,22 @@ textarea { min-height: 118px; resize: vertical; }
 .field > span:first-child { display: flex; margin: 0 0 7px; align-items: center; justify-content: space-between; gap: 8px; font-size: 11px; font-weight: 700; }
 .field small { color: #99a49d; font-size: 9px; font-weight: 500; }
 .day-editor-list { display: grid; gap: 13px; }
-.day-editor { position: relative; display: grid; padding: 16px; border: 1px solid var(--line); border-radius: 11px; grid-template-columns: 36px 52px minmax(0, 1fr) 145px; gap: 13px; align-items: start; background: #fff; transition: border-color .16s ease, box-shadow .16s ease, opacity .16s ease; }
+.day-editor { position: relative; display: grid; padding: 12px 16px 16px; border: 1px solid var(--line); border-radius: 11px; grid-template-columns: 52px minmax(0, 1fr) 145px; gap: 13px; align-items: start; background: #fff; transition: border-color .16s ease, box-shadow .16s ease, opacity .16s ease; }
 .day-editor:hover { border-color: #d5d5d1; box-shadow: 0 3px 12px rgba(15,23,18,.04); }
 .day-editor.is-dragging { opacity: .35; }
 .day-editor.drop-before::before,
 .day-editor.drop-after::after { position: absolute; right: 8px; left: 8px; z-index: 4; height: 3px; border-radius: 4px; background: var(--brand); content: ''; box-shadow: 0 0 0 3px rgba(var(--brand-rgb), .09); }
 .day-editor.drop-before::before { top: -8px; }
 .day-editor.drop-after::after { bottom: -8px; }
-.day-reorder-tools { display: flex; align-items: center; flex-direction: column; gap: 6px; }
-.day-drag-handle { width: 34px; height: 34px; padding: 0; color: #9b9a97; border: 1px solid transparent; border-radius: 7px; background: transparent; cursor: grab; font-size: 20px; line-height: 1; }
-.day-drag-handle:hover { color: var(--ink); border-color: var(--line); background: #f4f4f2; }
+.day-reorder-tools { display: flex; min-width: 0; padding: 0 30px 10px 0; border-bottom: 1px solid #efefec; grid-column: 1 / -1; align-items: center; justify-content: space-between; gap: 10px; }
+.day-drag-handle { display: inline-flex; width: auto; min-height: 34px; padding: 6px 10px; color: #696865; border: 1px solid var(--line); border-radius: 7px; align-items: center; gap: 8px; background: #f7f7f5; cursor: grab; line-height: 1; }
+.day-drag-handle > span { color: #8f8e8a; font-size: 20px; }
+.day-drag-handle strong { font-size: 10px; font-weight: 600; }
+.day-drag-handle small { padding: 4px 7px; color: var(--brand); border-radius: 5px; background: rgba(var(--brand-rgb), .08); font-size: 8px; font-weight: 700; text-transform: uppercase; }
+.day-drag-handle:hover { color: var(--ink); border-color: rgba(var(--brand-rgb), .35); background: rgba(var(--brand-rgb), .06); box-shadow: 0 0 0 3px rgba(var(--brand-rgb), .06); }
 .day-drag-handle:active { cursor: grabbing; }
 .day-move-buttons { display: flex; gap: 2px; }
-.day-move-buttons button { width: 16px; height: 22px; padding: 0; color: var(--muted); border: 0; background: transparent; cursor: pointer; font-size: 11px; }
+.day-move-buttons button { width: 28px; height: 28px; padding: 0; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; background: #fff; cursor: pointer; font-size: 11px; }
 .day-move-buttons button:hover:not(:disabled) { color: var(--brand); }
 .day-move-buttons button:disabled { opacity: .25; cursor: default; }
 .day-number { display: flex; color: var(--brand); align-items: center; flex-direction: column; font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
@@ -364,7 +367,9 @@ textarea { min-height: 118px; resize: vertical; }
   .tour-grid, .stats-grid, .form-grid { grid-template-columns: 1fr; }
   .toolbar-controls { flex-direction: column; }
   .toolbar-controls select { width: 100%; }
-  .day-editor { grid-template-columns: 34px 42px minmax(0, 1fr); padding: 14px 12px; gap: 9px; }
+  .day-editor { grid-template-columns: 42px minmax(0, 1fr); padding: 12px; gap: 9px; }
+  .day-reorder-tools { padding-right: 28px; }
+  .day-drag-handle small { display: none; }
   .day-image-box { grid-column: 1 / -1; min-height: 180px; }
   .image-uploader { grid-template-columns: 1fr; }
   .section-heading.split, .section-heading-actions { width: 100%; align-items: stretch; flex-direction: column; }
