@@ -18,7 +18,7 @@ Open the published GitHub Pages site:
 - Customize PDF colors, fonts, spacing, corners, cover style, day layout, section order, and visible content
 - Assign a different saved design to each itinerary and choose a workspace default
 - Preview a branded, page-safe A4 itinerary
-- Download a PDF directly with the bundled html2pdf.js engine, or use browser printing as a fallback
+- Download a precise vector PDF with deterministic A4 page templates, or use browser printing as a fallback
 - Add a QR code to every PDF that opens a compressed, read-only mobile copy of the itinerary
 - Copy the QR sharing link directly from the document preview
 - Search and filter the itinerary library
@@ -37,7 +37,9 @@ Open `index.html` directly, or serve the folder with any static web server.
 
 ## PDF export
 
-Open a proposal, select **Preview**, then choose **Download PDF** for direct export. You can also select **Print** and use the browser dialog:
+Open a proposal, select **Preview**, then choose **Download PDF** for direct export. The exporter follows an FPDF-style layout model: millimetre-based positioning, explicit page templates, controlled image crops, automatic text wrapping, and predictable page numbering.
+
+The Design Studio includes four quick PDF styles plus controls for colors, fonts, spacing, corners, cover design, daily layout, section order, and visible content. You can also select **Print** and use the browser dialog:
 
 - Destination: Save as PDF
 - Paper size: A4
@@ -46,6 +48,6 @@ Open a proposal, select **Preview**, then choose **Download PDF** for direct exp
 
 ## Technology
 
-HTML, CSS, vanilla JavaScript, html2pdf.js, and QRCode.js. The two libraries are bundled locally, so there are no build tools, database services, or install steps.
+HTML, CSS, vanilla JavaScript, jsPDF, and QRCode.js. The libraries are bundled locally, so there are no build tools, database services, PHP runtime, or install steps. jsPDF provides the browser-compatible vector PDF engine; literal FPDF is PHP-only and cannot execute on GitHub Pages.
 
 QR links contain a compressed text-and-design snapshot so customers can read the itinerary on another device without an account. Device-local uploaded images remain in the downloaded PDF but are omitted from the QR snapshot to keep the code reliably scannable.

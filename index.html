@@ -15,12 +15,13 @@
   <meta name="twitter:description" content="Create, customize, preview, and print beautiful tour proposals directly in your browser.">
   <meta name="twitter:image" content="https://gobiharan1.github.io/goali-tour-management/public/og.png">
   <title>Goali Tours — Itinerary Studio</title>
-  <link rel="stylesheet" href="assets/css/browser-app.css?v=20260831-3">
-  <link rel="stylesheet" href="assets/css/design-studio.css?v=20260831-3">
+  <link rel="stylesheet" href="assets/css/browser-app.css?v=20260901-1">
+  <link rel="stylesheet" href="assets/css/design-studio.css?v=20260901-1">
   <script defer src="assets/vendor/qrcode.min.js"></script>
-  <script defer src="assets/vendor/html2pdf.bundle.min.js"></script>
-  <script defer src="assets/js/designs.js?v=20260831-3"></script>
-  <script defer src="assets/js/app.js?v=20260831-3"></script>
+  <script defer src="assets/vendor/jspdf.umd.min.js"></script>
+  <script defer src="assets/js/designs.js?v=20260901-1"></script>
+  <script defer src="assets/js/pdf-export.js?v=20260901-1"></script>
+  <script defer src="assets/js/app.js?v=20260901-1"></script>
 </head>
 <body>
   <div id="app" class="app-shell">
@@ -259,6 +260,17 @@
             </div>
 
             <label class="field"><span>Design name</span><input id="designName" maxlength="60" required></label>
+
+            <fieldset class="control-group quick-style-group">
+              <legend>Quick PDF styles</legend>
+              <p class="control-help">Start with a polished layout, then fine-tune any color or page setting below.</p>
+              <div class="quick-style-grid">
+                <button type="button" data-pdf-recipe="editorial"><i></i><span><strong>Editorial</strong><small>Elegant & calm</small></span></button>
+                <button type="button" data-pdf-recipe="tropical"><i></i><span><strong>Tropical</strong><small>Bright magazine</small></span></button>
+                <button type="button" data-pdf-recipe="coastal"><i></i><span><strong>Coastal</strong><small>Fresh & airy</small></span></button>
+                <button type="button" data-pdf-recipe="luxury"><i></i><span><strong>Luxury</strong><small>Dark & premium</small></span></button>
+              </div>
+            </fieldset>
 
             <fieldset class="control-group">
               <legend>Color palette</legend>

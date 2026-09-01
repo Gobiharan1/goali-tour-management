@@ -11,6 +11,12 @@
     'Sri Lanka Luxury Tours',
     'Sri Lanka Beach Tours'
   ];
+  const PDF_RECIPES = {
+    editorial: { primary: '#173f32', accent: '#d7a94b', paper: '#ffffff', ink: '#14231c', fontPair: 'editorial', coverStyle: 'full', dayLayout: 'top', density: 'comfortable', cornerStyle: 'soft' },
+    tropical: { primary: '#075a55', accent: '#c9ec5b', paper: '#f6f1e8', ink: '#15342d', fontPair: 'modern', coverStyle: 'magazine', dayLayout: 'collage', density: 'comfortable', cornerStyle: 'round' },
+    coastal: { primary: '#176b72', accent: '#e39b61', paper: '#fffdf8', ink: '#19343a', fontPair: 'elegant', coverStyle: 'split', dayLayout: 'split', density: 'airy', cornerStyle: 'round' },
+    luxury: { primary: '#17243d', accent: '#c8a55a', paper: '#fbfaf7', ink: '#172033', fontPair: 'classic', coverStyle: 'bold', dayLayout: 'text', density: 'compact', cornerStyle: 'sharp' }
+  };
 
   const sampleTour = {
     id: 'sample-sri-lanka',
@@ -65,6 +71,7 @@
   let designDraft = Designs.find(selectedDesignId, state.designs);
   let activePreviewFileName = 'goali-itinerary.pdf';
   let activeShareUrl = '';
+  let activePdfContext = null;
   let toastTimer;
 
   const $ = (selector, root = document) => root.querySelector(selector);
@@ -786,6 +793,14 @@
     }
     activeShareUrl = shareUrl;
     activePreviewFileName = `${String(tour.tourName || 'goali-itinerary').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 70) || 'goali-itinerary'}.pdf`;
+    activePdfContext = {
+      tour: clone(tour),
+      design: clone(design),
+      brand: clone(brand),
+      qrImage,
+      shareUrl,
+      priceLabel: currency(tour.priceAmount, tour.priceCurrency)
+    };
     const overview = `<section class="pdf-page pdf-overview-page">
       <div class="pdf-page-inner">
         <header class="pdf-section-head"><p class="pdf-kicker">Your Sri Lankan story</p><h2>Journey overview</h2></header>
@@ -889,41 +904,21 @@
     document.body.classList.remove('modal-open');
   }
 
-  function waitForDocumentImages(element) {
-    return Promise.all($$('img', element).map(image => image.complete
-      ? Promise.resolve()
-      : new Promise(resolve => {
-        image.addEventListener('load', resolve, { once: true });
-        image.addEventListener('error', resolve, { once: true });
-      })));
-  }
-
   async function downloadPdf() {
     const button = $('#downloadItinerary');
-    if (typeof html2pdf !== 'function') {
-      showToast('The PDF engine did not load. Use Print instead.');
+    if (!window.GoaliPdf?.exportItinerary || !activePdfContext) {
+      showToast('The precise PDF engine did not load. Use Print instead.');
       return;
     }
     button.disabled = true;
-    button.textContent = 'Building PDF…';
-    $('#itineraryDocument').classList.add('pdf-export-mode');
+    button.textContent = 'Building precise PDF…';
     try {
-      await document.fonts?.ready;
-      await waitForDocumentImages($('#itineraryDocument'));
-      await html2pdf().set({
-        margin: 0,
-        filename: activePreviewFileName,
-        image: { type: 'jpeg', quality: .96 },
-        html2canvas: { scale: 2, useCORS: true, allowTaint: false, logging: false, backgroundColor: null },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
-        pagebreak: { mode: ['css', 'legacy'], before: '.pdf-page + .pdf-page' }
-      }).from($('#itineraryDocument')).save();
-      showToast('PDF downloaded');
+      const result = await window.GoaliPdf.exportItinerary(activePdfContext, activePreviewFileName);
+      showToast(`PDF downloaded · ${result.pages} precise A4 pages`);
     } catch (error) {
       console.error(error);
       showToast('Direct download failed. Print / Save PDF is still available.');
     } finally {
-      $('#itineraryDocument').classList.remove('pdf-export-mode');
       button.disabled = false;
       button.textContent = 'Download PDF';
     }
@@ -1061,6 +1056,16 @@
       const designChoice = event.target.closest('[data-select-design]');
       if (designChoice) {
         selectDesign(designChoice.dataset.selectDesign);
+        return;
+      }
+      const pdfRecipe = event.target.closest('[data-pdf-recipe]');
+      if (pdfRecipe) {
+        const recipe = PDF_RECIPES[pdfRecipe.dataset.pdfRecipe];
+        if (recipe) {
+          designDraft = Designs.normalize({ ...readDesignForm(), ...recipe, builtIn: false });
+          fillDesignForm();
+          showToast('PDF style applied - customize anything below');
+        }
         return;
       }
       const sectionMove = event.target.closest('[data-move-section]');
