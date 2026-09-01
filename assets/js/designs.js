@@ -23,6 +23,11 @@
       heading: '"Montserrat", ui-sans-serif, system-ui, sans-serif',
       body: '"DM Sans", ui-sans-serif, system-ui, sans-serif'
     },
+    clean: {
+      label: 'Poppins Clean',
+      heading: '"Poppins", ui-sans-serif, system-ui, sans-serif',
+      body: '"Poppins", ui-sans-serif, system-ui, sans-serif'
+    },
     classic: {
       label: 'Classic',
       heading: 'Georgia, "Times New Roman", serif',

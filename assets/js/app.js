@@ -72,6 +72,8 @@
   let activePreviewFileName = 'goali-itinerary.pdf';
   let activeShareUrl = '';
   let activePdfContext = null;
+  let draggedDayIndex = null;
+  let dayDropPosition = 'before';
   let toastTimer;
 
   const $ = (selector, root = document) => root.querySelector(selector);
@@ -367,6 +369,13 @@
       const image = safeImage(day.image);
       return `<article class="day-editor" data-day-index="${index}">
         <button class="remove-day" type="button" data-remove-day="${index}" aria-label="Remove day ${index + 1}">×</button>
+        <div class="day-reorder-tools">
+          <button class="day-drag-handle" type="button" draggable="true" data-day-drag="${index}" aria-label="Drag Day ${index + 1} to reorder" title="Drag to reorder">⠿</button>
+          <span class="day-move-buttons">
+            <button type="button" data-move-day="${index}" data-direction="up" aria-label="Move Day ${index + 1} up" ${index === 0 ? 'disabled' : ''}>↑</button>
+            <button type="button" data-move-day="${index}" data-direction="down" aria-label="Move Day ${index + 1} down" ${index === draftDays.length - 1 ? 'disabled' : ''}>↓</button>
+          </span>
+        </div>
         <div class="day-number"><span>Day</span><strong>${index + 1}</strong></div>
         <div class="day-fields">
           <input class="day-title" value="${escapeHtml(day.title || '')}" placeholder="Day title" aria-label="Day ${index + 1} title">
@@ -380,6 +389,30 @@
     }).join('');
     $('#durationDays').value = draftDays.length;
     $('#durationNights').value = Math.max(0, Math.min(Number($('#durationNights').value || 0), draftDays.length));
+  }
+
+  function renumberDefaultDayTitles() {
+    draftDays = draftDays.map((day, index) => ({
+      ...day,
+      title: /^Day\s+\d+$/i.test(day.title || '') ? `Day ${index + 1}` : day.title
+    }));
+  }
+
+  function moveDay(fromIndex, toIndex, message = '') {
+    draftDays = readDayInputs();
+    if (fromIndex < 0 || fromIndex >= draftDays.length || toIndex < 0 || toIndex >= draftDays.length || fromIndex === toIndex) return;
+    const [movedDay] = draftDays.splice(fromIndex, 1);
+    draftDays.splice(toIndex, 0, movedDay);
+    renumberDefaultDayTitles();
+    renderDayEditors();
+    $('#saveStatus').textContent = 'Day order changed - save itinerary to keep it';
+    showToast(message || `Moved to Day ${toIndex + 1}`);
+  }
+
+  function clearDayDropState() {
+    $$('.day-editor').forEach(card => card.classList.remove('is-dragging', 'drop-before', 'drop-after'));
+    draggedDayIndex = null;
+    dayDropPosition = 'before';
   }
 
   function renderCoverPreview() {
@@ -1068,6 +1101,13 @@
         }
         return;
       }
+      const dayMove = event.target.closest('[data-move-day]');
+      if (dayMove) {
+        const fromIndex = Number(dayMove.dataset.moveDay);
+        const toIndex = dayMove.dataset.direction === 'up' ? fromIndex - 1 : fromIndex + 1;
+        moveDay(fromIndex, toIndex);
+        return;
+      }
       const sectionMove = event.target.closest('[data-move-section]');
       if (sectionMove) {
         const index = designDraft.sectionOrder.indexOf(sectionMove.dataset.moveSection);
@@ -1109,6 +1149,7 @@
         draftDays = readDayInputs();
         if (draftDays.length <= 1) return showToast('An itinerary needs at least one day.');
         draftDays.splice(Number(remove.dataset.removeDay), 1);
+        renumberDefaultDayTitles();
         renderDayEditors();
       }
     });
@@ -1164,6 +1205,45 @@
         showToast('That image could not be used.');
       }
     });
+
+    $('#dayPlans').addEventListener('dragstart', event => {
+      const handle = event.target.closest('[data-day-drag]');
+      if (!handle) return;
+      draftDays = readDayInputs();
+      draggedDayIndex = Number(handle.dataset.dayDrag);
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', String(draggedDayIndex));
+      requestAnimationFrame(() => handle.closest('.day-editor')?.classList.add('is-dragging'));
+    });
+
+    $('#dayPlans').addEventListener('dragover', event => {
+      if (draggedDayIndex === null) return;
+      const target = event.target.closest('.day-editor');
+      if (!target || Number(target.dataset.dayIndex) === draggedDayIndex) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'move';
+      $$('.day-editor', $('#dayPlans')).forEach(card => card.classList.remove('drop-before', 'drop-after'));
+      const bounds = target.getBoundingClientRect();
+      dayDropPosition = event.clientY > bounds.top + bounds.height / 2 ? 'after' : 'before';
+      target.classList.add(dayDropPosition === 'after' ? 'drop-after' : 'drop-before');
+    });
+
+    $('#dayPlans').addEventListener('drop', event => {
+      if (draggedDayIndex === null) return;
+      const target = event.target.closest('.day-editor');
+      if (!target) return clearDayDropState();
+      event.preventDefault();
+      const targetIndex = Number(target.dataset.dayIndex);
+      if (targetIndex === draggedDayIndex) return clearDayDropState();
+      let insertionIndex = targetIndex + (dayDropPosition === 'after' ? 1 : 0);
+      if (draggedDayIndex < insertionIndex) insertionIndex -= 1;
+      const fromIndex = draggedDayIndex;
+      const destination = Math.max(0, Math.min(insertionIndex, draftDays.length - 1));
+      clearDayDropState();
+      moveDay(fromIndex, destination, `Day moved to position ${destination + 1}`);
+    });
+
+    $('#dayPlans').addEventListener('dragend', clearDayDropState);
 
     $('#coverImage').addEventListener('change', async event => {
       if (!event.target.files[0]) return;

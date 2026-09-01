@@ -21,7 +21,7 @@
     : text(value).split(/\r?\n/).map(item => item.trim()).filter(Boolean);
 
   const fontSet = design => ({
-    heading: design.fontPair === 'modern' ? 'helvetica' : 'times',
+    heading: ['modern', 'clean'].includes(design.fontPair) ? 'helvetica' : 'times',
     body: 'helvetica'
   });
 
