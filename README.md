@@ -12,10 +12,12 @@ Open the published GitHub Pages site:
 
 - Create, edit, duplicate, archive, restore, and delete tour proposals
 - Build day-by-day itineraries with customer details, pricing, notes, and images
+- Drag day cards into any position with automatic day-number and default-title updates (plus accessible up/down controls)
+- Work in a bright, Notion-inspired interface using the eye-friendly Poppins typeface
 - Upload a company logo and automatically select a matching brand color
 - Choose from seven professional PDF designs or save reusable custom designs
 - Use premium travel-magazine, campaign-split, and organic-editorial compositions inspired by modern brochure design
-- Customize PDF colors, fonts, spacing, corners, cover style, day layout, section order, and visible content
+- Customize PDF colors, fonts (including Poppins Clean), spacing, corners, cover style, day layout, section order, and visible content
 - Assign a different saved design to each itinerary and choose a workspace default
 - Preview a branded, page-safe A4 itinerary
 - Download a precise vector PDF with deterministic A4 page templates, or use browser printing as a fallback

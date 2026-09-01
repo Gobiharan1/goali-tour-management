@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#173f32">
+  <meta name="theme-color" content="#fbfbfa">
   <meta name="description" content="A browser-based workspace for creating polished, branded travel itineraries.">
   <meta property="og:title" content="Goali Tours — Itinerary Studio">
   <meta property="og:description" content="Create, customize, preview, and print beautiful tour proposals directly in your browser.">
@@ -15,13 +15,13 @@
   <meta name="twitter:description" content="Create, customize, preview, and print beautiful tour proposals directly in your browser.">
   <meta name="twitter:image" content="https://gobiharan1.github.io/goali-tour-management/public/og.png">
   <title>Goali Tours — Itinerary Studio</title>
-  <link rel="stylesheet" href="assets/css/browser-app.css?v=20260901-1">
-  <link rel="stylesheet" href="assets/css/design-studio.css?v=20260901-1">
+  <link rel="stylesheet" href="assets/css/browser-app.css?v=20260901-2">
+  <link rel="stylesheet" href="assets/css/design-studio.css?v=20260901-2">
   <script defer src="assets/vendor/qrcode.min.js"></script>
   <script defer src="assets/vendor/jspdf.umd.min.js"></script>
-  <script defer src="assets/js/designs.js?v=20260901-1"></script>
-  <script defer src="assets/js/pdf-export.js?v=20260901-1"></script>
-  <script defer src="assets/js/app.js?v=20260901-1"></script>
+  <script defer src="assets/js/designs.js?v=20260901-2"></script>
+  <script defer src="assets/js/pdf-export.js?v=20260901-2"></script>
+  <script defer src="assets/js/app.js?v=20260901-2"></script>
 </head>
 <body>
   <div id="app" class="app-shell">
@@ -155,8 +155,11 @@
           <section class="form-card">
             <div class="section-number">03</div>
             <div class="section-heading split">
-              <div><h2>Day-by-day story</h2><p>Add a title, description, and optional image for each day.</p></div>
-              <button id="addDay" class="button secondary compact" type="button">Add day ＋</button>
+              <div><h2>Day-by-day story</h2><p>Drag any day into a new position. Day numbers update automatically.</p></div>
+              <div class="section-heading-actions">
+                <span class="day-sort-hint"><i>⠿</i><span><strong>Drag to reorder</strong><small>Try moving Day 6 to Day 2</small></span></span>
+                <button id="addDay" class="button secondary compact" type="button">Add day ＋</button>
+              </div>
             </div>
             <div id="dayPlans" class="day-editor-list"></div>
           </section>
