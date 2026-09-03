@@ -4,7 +4,7 @@
   const STORAGE_KEY = 'goali-itinerary-studio-v1';
   const DRAFT_KEY = 'goali-itinerary-draft-v1';
   const Designs = window.GoaliDesigns;
-  const CATEGORIES = [
+  const DEFAULT_CATEGORIES = [
     'Sri Lanka Family Tours',
     'Sri Lanka Honeymoon Tours',
     'Sri Lanka Cultural Tours',
@@ -12,6 +12,7 @@
     'Sri Lanka Luxury Tours',
     'Sri Lanka Beach Tours'
   ];
+  const ADD_CATEGORY_VALUE = '__add_category__';
   const PDF_RECIPES = {
     editorial: { primary: '#173f32', accent: '#d7a94b', paper: '#ffffff', ink: '#14231c', fontPair: 'editorial', coverStyle: 'full', dayLayout: 'top', density: 'comfortable', cornerStyle: 'soft' },
     tropical: { primary: '#075a55', accent: '#c9ec5b', paper: '#f6f1e8', ink: '#15342d', fontPair: 'modern', coverStyle: 'magazine', dayLayout: 'collage', density: 'comfortable', cornerStyle: 'round' },
@@ -64,7 +65,7 @@
   };
 
   const defaultState = () => ({
-    version: 3,
+    version: 4,
     settings: {
       companyName: 'Goali Tours',
       contact: 'hello@goalitours.com · +94 77 000 0000',
@@ -74,6 +75,7 @@
     },
     designs: [],
     media: [],
+    customCategories: [],
     tours: [sampleTour]
   });
 
@@ -93,6 +95,7 @@
   let redoStack = [];
   let draftTimer = 0;
   let toastTimer;
+  let categoryBeforeAdd = DEFAULT_CATEGORIES[0];
 
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -117,12 +120,15 @@
   function migrateState(workspace) {
     const fallback = defaultState();
     const migrated = clone(workspace || fallback);
-    migrated.version = 3;
+    migrated.version = 4;
     migrated.settings = { ...fallback.settings, ...(migrated.settings || {}) };
     migrated.designs = Array.isArray(migrated.designs)
       ? migrated.designs.map(design => ({ ...Designs.normalize(design), builtIn: false }))
       : [];
     migrated.media = Array.isArray(migrated.media) ? migrated.media.filter(item => safeImage(item?.src)).slice(0, 40) : [];
+    migrated.customCategories = Array.isArray(migrated.customCategories)
+      ? [...new Set(migrated.customCategories.map(category => String(category || '').trim()).filter(Boolean))].slice(0, 50)
+      : [];
     const availableIds = new Set(Designs.all(migrated.designs).map(design => design.id));
     if (!availableIds.has(migrated.settings.defaultDesignId)) migrated.settings.defaultDesignId = 'editorial-forest';
     migrated.tours = Array.isArray(migrated.tours) ? migrated.tours : [];
@@ -135,7 +141,22 @@
       tour.days = Array.isArray(tour.days) ? tour.days.map(day => ({ ...day, blocks: Array.isArray(day.blocks) ? day.blocks : [] })) : [];
       tour.versions = Array.isArray(tour.versions) ? tour.versions.slice(-10) : [];
     });
+    migrated.tours.forEach(tour => {
+      const category = String(tour.category || '').trim();
+      if (category && !DEFAULT_CATEGORIES.includes(category) && !migrated.customCategories.includes(category)) {
+        migrated.customCategories.push(category);
+      }
+    });
     return migrated;
+  }
+
+  function allCategories() {
+    const categories = [...DEFAULT_CATEGORIES, ...(state.customCategories || [])];
+    state.tours.forEach(tour => {
+      const category = String(tour.category || '').trim();
+      if (category) categories.push(category);
+    });
+    return [...new Set(categories)];
   }
 
   function saveState(message = 'Saved to this browser') {
@@ -270,11 +291,49 @@
   }
 
   function renderFilters() {
-    const current = $('#categoryFilter').value;
-    $('#categoryFilter').innerHTML = `<option value="">All categories</option>${CATEGORIES.map(category => `<option value="${escapeHtml(category)}">${escapeHtml(category.replace('Sri Lanka ', ''))}</option>`).join('')}`;
-    $('#categoryFilter').value = CATEGORIES.includes(current) ? current : '';
-    $('#tourCategory').innerHTML = CATEGORIES.map(category => `<option>${escapeHtml(category)}</option>`).join('');
+    const categories = allCategories();
+    const currentFilter = $('#categoryFilter').value;
+    const currentEditorCategory = $('#tourCategory').value;
+    $('#categoryFilter').innerHTML = `<option value="">All categories</option>${categories.map(category => `<option value="${escapeHtml(category)}">${escapeHtml(category.replace('Sri Lanka ', ''))}</option>`).join('')}`;
+    $('#categoryFilter').value = categories.includes(currentFilter) ? currentFilter : '';
+    $('#tourCategory').innerHTML = `${categories.map(category => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`).join('')}<option value="${ADD_CATEGORY_VALUE}">＋ Add new category…</option>`;
+    $('#tourCategory').value = categories.includes(currentEditorCategory) ? currentEditorCategory : categories[0];
     renderTourDesignOptions();
+  }
+
+  function openCategoryDialog() {
+    $('#newCategoryName').value = '';
+    $('#categoryDialog').hidden = false;
+    requestAnimationFrame(() => $('#newCategoryName').focus());
+  }
+
+  function closeCategoryDialog(restoreSelection = true) {
+    $('#categoryDialog').hidden = true;
+    if (restoreSelection && $('#tourCategory').value === ADD_CATEGORY_VALUE) {
+      $('#tourCategory').value = allCategories().includes(categoryBeforeAdd) ? categoryBeforeAdd : allCategories()[0];
+    }
+  }
+
+  function addCustomCategory(event) {
+    event.preventDefault();
+    const name = $('#newCategoryName').value.trim().replace(/\s+/g, ' ');
+    if (name.length < 2) {
+      $('#newCategoryName').focus();
+      return showToast('Enter a category name with at least 2 characters.');
+    }
+    const existing = allCategories().find(category => category.toLowerCase() === name.toLowerCase());
+    if (existing) {
+      closeCategoryDialog(false);
+      $('#tourCategory').value = existing;
+      categoryBeforeAdd = existing;
+      return showToast('That category already exists and is now selected.');
+    }
+    state.customCategories.push(name);
+    saveState('New category added');
+    $('#tourCategory').value = name;
+    categoryBeforeAdd = name;
+    closeCategoryDialog(false);
+    scheduleDraftSave();
   }
 
   function renderTourDesignOptions() {
@@ -339,7 +398,8 @@
     $('#durationDays').value = 5;
     $('#durationNights').value = 4;
     $('#activityLevel').value = 'Intermediate';
-    $('#tourCategory').value = CATEGORIES[0];
+    $('#tourCategory').value = allCategories()[0];
+    categoryBeforeAdd = $('#tourCategory').value;
     $('#tourDesign').value = state.settings.defaultDesignId;
     $('#priceCurrency').value = 'LKR';
     $('#depositPercent').value = 30;
@@ -364,7 +424,8 @@
     if (!tour) return;
     $('#tourId').value = tour.id;
     $('#tourName').value = tour.tourName || '';
-    $('#tourCategory').value = CATEGORIES.includes(tour.category) ? tour.category : CATEGORIES[0];
+    $('#tourCategory').value = allCategories().includes(tour.category) ? tour.category : allCategories()[0];
+    categoryBeforeAdd = $('#tourCategory').value;
     $('#activityLevel').value = tour.activityLevel || 'Intermediate';
     $('#durationDays').value = Number(tour.durationDays || 1);
     $('#durationNights').value = Number(tour.durationNights || 0);
@@ -1215,7 +1276,7 @@
       if (!parsed || !Array.isArray(parsed.tours) || !parsed.settings) throw new Error('Invalid backup');
       if (!confirm(`Import ${parsed.tours.length} itineraries? This replaces the current browser workspace.`)) return;
       state = migrateState({
-        version: 2,
+        version: 4,
         settings: {
           companyName: String(parsed.settings.companyName || 'Goali Tours').slice(0, 160),
           contact: String(parsed.settings.contact || '').slice(0, 240),
@@ -1224,6 +1285,7 @@
           defaultDesignId: String(parsed.settings.defaultDesignId || 'editorial-forest')
         },
         designs: Array.isArray(parsed.designs) ? parsed.designs : [],
+        customCategories: Array.isArray(parsed.customCategories) ? parsed.customCategories : [],
         tours: parsed.tours.map(item => ({ ...item, id: String(item.id || uid()), status: item.status === 'recycled' ? 'recycled' : 'active' }))
       });
       selectedDesignId = state.settings.defaultDesignId;
@@ -1398,6 +1460,19 @@
     $('#designForm').addEventListener('change', updateDesignDraft);
     $('#searchTours').addEventListener('input', renderDashboard);
     $('#categoryFilter').addEventListener('change', renderDashboard);
+    $('#tourCategory').addEventListener('focus', event => {
+      if (event.target.value !== ADD_CATEGORY_VALUE) categoryBeforeAdd = event.target.value;
+    });
+    $('#tourCategory').addEventListener('change', event => {
+      if (event.target.value === ADD_CATEGORY_VALUE) openCategoryDialog();
+      else categoryBeforeAdd = event.target.value;
+    });
+    $('#categoryForm').addEventListener('submit', addCustomCategory);
+    $('#cancelCategory').addEventListener('click', () => closeCategoryDialog());
+    $('#closeCategoryDialog').addEventListener('click', () => closeCategoryDialog());
+    $('#categoryDialog').addEventListener('click', event => {
+      if (event.target === $('#categoryDialog')) closeCategoryDialog();
+    });
     $('#mobileMenu').addEventListener('click', openMobileMenu);
     $('#mobileClose').addEventListener('click', closeMobileMenu);
     $('#sidebarBackdrop').addEventListener('click', closeMobileMenu);
@@ -1596,7 +1671,9 @@
     });
 
     document.addEventListener('keydown', event => {
-      if (event.key === 'Escape' && !$('#previewModal').hidden) closePreview();
+      if (event.key !== 'Escape') return;
+      if (!$('#categoryDialog').hidden) closeCategoryDialog();
+      else if (!$('#previewModal').hidden) closePreview();
     });
     window.addEventListener('hashchange', openSharedPreviewFromUrl);
   }

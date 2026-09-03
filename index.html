@@ -15,13 +15,13 @@
   <meta name="twitter:description" content="Create, customize, preview, and print beautiful tour proposals directly in your browser.">
   <meta name="twitter:image" content="https://gobiharan1.github.io/goali-tour-management/public/og.png">
   <title>Goali Tours — Itinerary Studio</title>
-  <link rel="stylesheet" href="assets/css/browser-app.css?v=20260901-4">
-  <link rel="stylesheet" href="assets/css/design-studio.css?v=20260901-4">
+  <link rel="stylesheet" href="assets/css/browser-app.css?v=20260903-5">
+  <link rel="stylesheet" href="assets/css/design-studio.css?v=20260903-5">
   <script defer src="assets/vendor/qrcode.min.js"></script>
   <script defer src="assets/vendor/jspdf.umd.min.js"></script>
-  <script defer src="assets/js/designs.js?v=20260901-4"></script>
-  <script defer src="assets/js/pdf-export.js?v=20260901-4"></script>
-  <script defer src="assets/js/app.js?v=20260901-4"></script>
+  <script defer src="assets/js/designs.js?v=20260903-5"></script>
+  <script defer src="assets/js/pdf-export.js?v=20260903-5"></script>
+  <script defer src="assets/js/app.js?v=20260903-5"></script>
 </head>
 <body>
   <div id="app" class="app-shell">
@@ -357,6 +357,20 @@
         </div>
       </section>
     </main>
+  </div>
+
+  <div id="categoryDialog" class="dialog-backdrop" role="dialog" aria-modal="true" aria-labelledby="categoryDialogTitle" hidden>
+    <form id="categoryForm" class="dialog-card">
+      <button id="closeCategoryDialog" class="dialog-close" type="button" aria-label="Close">×</button>
+      <span class="eyebrow">Category library</span>
+      <h2 id="categoryDialogTitle">Add a new category</h2>
+      <p>Create a reusable package category. It will appear in this editor and the dashboard filter.</p>
+      <label class="field"><span>Category name</span><input id="newCategoryName" maxlength="80" autocomplete="off" required placeholder="Wellness retreats"></label>
+      <div class="dialog-actions">
+        <button id="cancelCategory" class="button secondary" type="button">Cancel</button>
+        <button class="button primary" type="submit">Add category</button>
+      </div>
+    </form>
   </div>
 
   <div id="previewModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="previewModalTitle" hidden>
