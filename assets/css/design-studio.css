@@ -400,6 +400,13 @@
 .itinerary-document[data-day-layout='text'] .day-story { border: 0; border-top: 5px solid var(--doc-accent); border-radius: 0; }
 .itinerary-document[data-day-layout='text'] .day-story-body { padding-left: 0; padding-right: 0; }
 
+/* Use the available A4 area instead of leaving short day pages visually empty. */
+.itinerary-document:is([data-day-layout='top'], [data-day-layout='text']) .pdf-day-page .pdf-page-inner { display: flex; min-height: 1120px; flex-direction: column; }
+.itinerary-document:is([data-day-layout='top'], [data-day-layout='text']) .pdf-day-page .day-story { display: flex; min-height: 840px; flex: 1; flex-direction: column; }
+.itinerary-document:is([data-day-layout='top'], [data-day-layout='text']) .pdf-day-page .day-story-image { height: auto; min-height: 390px; flex: 1; }
+.itinerary-document:is([data-day-layout='top'], [data-day-layout='text']) .pdf-day-page .day-story-body { min-height: 190px; }
+.itinerary-document:is([data-day-layout='top'], [data-day-layout='text']) .pdf-day-page .day-story:not(:has(.day-story-image)) .day-story-body { display: flex; min-height: 820px; justify-content: center; flex-direction: column; background: linear-gradient(145deg, rgba(var(--doc-brand-rgb), .07), var(--doc-paper)); }
+
 /* Magazine collage day page */
 .itinerary-document[data-day-layout='collage'] .pdf-section-head { position: relative; z-index: 4; width: 58%; border: 0; }
 .itinerary-document[data-day-layout='collage'] .day-story { position: relative; min-height: 790px; margin: -20px 0 0; overflow: visible; border: 0; border-radius: 0; background: var(--doc-brand); }

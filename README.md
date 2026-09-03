@@ -19,12 +19,12 @@ Open the published GitHub Pages site:
 - Use a refined responsive dashboard with richer journey stats, improved search states, and touch-friendly controls
 - Reuse locally saved images from the media library and apply them as itinerary covers
 - Undo and redo day-builder changes, recover earlier saved versions, autosave drafts, improve writing, and run a completeness check
-- Upload a company logo and automatically select a matching brand color
+- Upload a company logo and automatically select a matching PDF color without changing the workspace interface
 - Choose from seven professional PDF designs or save reusable custom designs
 - Use premium travel-magazine, campaign-split, and organic-editorial compositions inspired by modern brochure design
 - Customize PDF colors, fonts (including Poppins Clean), spacing, corners, cover style, day layout, section order, and visible content
 - Assign a different saved design to each itinerary and choose a workspace default
-- Preview a branded, page-safe A4 itinerary
+- Preview a branded, page-safe A4 itinerary with space-filling day layouts that avoid large empty areas
 - Download a precise vector PDF with deterministic A4 page templates, or use browser printing as a fallback
 - Add a QR code to every PDF that opens a compressed, read-only mobile copy of the itinerary
 - Copy the QR sharing link directly from the document preview

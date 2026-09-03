@@ -15,13 +15,13 @@
   <meta name="twitter:description" content="Create, customize, preview, and print beautiful tour proposals directly in your browser.">
   <meta name="twitter:image" content="https://gobiharan1.github.io/goali-tour-management/public/og.png">
   <title>Goali Tours — Itinerary Studio</title>
-  <link rel="stylesheet" href="assets/css/browser-app.css?v=20260903-6">
-  <link rel="stylesheet" href="assets/css/design-studio.css?v=20260903-6">
+  <link rel="stylesheet" href="assets/css/browser-app.css?v=20260903-7">
+  <link rel="stylesheet" href="assets/css/design-studio.css?v=20260903-7">
   <script defer src="assets/vendor/qrcode.min.js"></script>
   <script defer src="assets/vendor/jspdf.umd.min.js"></script>
-  <script defer src="assets/js/designs.js?v=20260903-6"></script>
-  <script defer src="assets/js/pdf-export.js?v=20260903-6"></script>
-  <script defer src="assets/js/app.js?v=20260903-6"></script>
+  <script defer src="assets/js/designs.js?v=20260903-7"></script>
+  <script defer src="assets/js/pdf-export.js?v=20260903-7"></script>
+  <script defer src="assets/js/app.js?v=20260903-7"></script>
 </head>
 <body>
   <div id="app" class="app-shell">
@@ -249,14 +249,14 @@
 
       <section id="brandView" class="view" aria-labelledby="brandTitle">
         <div class="page-head compact-head">
-          <div><span class="eyebrow">Visual identity</span><h1 id="brandTitle">Brand settings</h1><p>Your color and logo flow into every proposal and printed PDF.</p></div>
+          <div><span class="eyebrow">Visual identity</span><h1 id="brandTitle">PDF brand settings</h1><p>Your color and logo flow into customer documents while the workspace keeps its consistent interface color.</p></div>
         </div>
         <form id="brandForm" class="brand-layout">
           <section class="form-card brand-form-card">
             <div class="section-heading"><h2>Company profile</h2><p>Customize the workspace without editing any code.</p></div>
             <label class="field"><span>Company name</span><input id="companyName" required></label>
             <label class="field"><span>Contact line</span><input id="companyContact" placeholder="hello@yourcompany.com · +94 00 000 0000"></label>
-            <label class="field"><span>Brand color</span><span class="color-input"><input id="brandColor" type="color" value="#173f32"><input id="brandColorText" value="#173f32" maxlength="7"></span></label>
+            <label class="field"><span>Default PDF brand color</span><span class="color-input"><input id="brandColor" type="color" value="#173f32"><input id="brandColorText" value="#173f32" maxlength="7"></span></label>
             <label class="field"><span>Company logo</span><span class="logo-upload-row"><span id="brandLogoPreview" class="brand-logo large">GT</span><span><span class="button secondary file-button">Upload logo<input id="brandLogo" type="file" accept="image/*" hidden></span><button id="removeLogo" class="text-button danger-text" type="button">Remove</button></span></span></label>
             <div class="brand-actions"><button class="button primary" type="submit">Save brand settings</button></div>
           </section>
