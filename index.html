@@ -15,13 +15,13 @@
   <meta name="twitter:description" content="Create, customize, preview, and print beautiful tour proposals directly in your browser.">
   <meta name="twitter:image" content="https://gobiharan1.github.io/goali-tour-management/public/og.png">
   <title>Goali Tours — Itinerary Studio</title>
-  <link rel="stylesheet" href="assets/css/browser-app.css?v=20260901-3">
-  <link rel="stylesheet" href="assets/css/design-studio.css?v=20260901-3">
+  <link rel="stylesheet" href="assets/css/browser-app.css?v=20260901-4">
+  <link rel="stylesheet" href="assets/css/design-studio.css?v=20260901-4">
   <script defer src="assets/vendor/qrcode.min.js"></script>
   <script defer src="assets/vendor/jspdf.umd.min.js"></script>
-  <script defer src="assets/js/designs.js?v=20260901-3"></script>
-  <script defer src="assets/js/pdf-export.js?v=20260901-3"></script>
-  <script defer src="assets/js/app.js?v=20260901-3"></script>
+  <script defer src="assets/js/designs.js?v=20260901-4"></script>
+  <script defer src="assets/js/pdf-export.js?v=20260901-4"></script>
+  <script defer src="assets/js/app.js?v=20260901-4"></script>
 </head>
 <body>
   <div id="app" class="app-shell">
@@ -115,7 +115,13 @@
               <span id="editorEyebrow" class="eyebrow">New proposal</span>
               <h1 id="editorTitle">Create an itinerary</h1>
             </div>
-            <div class="autosave"><span class="status-dot"></span><span id="saveStatus">Changes save on submit</span></div>
+            <div class="editor-utility-bar">
+              <button id="undoEditor" class="button secondary compact" type="button" disabled>↶ Undo</button>
+              <button id="redoEditor" class="button secondary compact" type="button" disabled>↷ Redo</button>
+              <button id="checkItinerary" class="button secondary compact" type="button">✓ Check</button>
+              <button id="improveWriting" class="button secondary compact" type="button">✦ Improve writing</button>
+              <div class="autosave"><span class="status-dot"></span><span id="saveStatus">Draft autosave is on</span></div>
+            </div>
           </div>
         </div>
 
@@ -155,7 +161,7 @@
           <section class="form-card">
             <div class="section-number">03</div>
             <div class="section-heading split">
-              <div><h2>Day-by-day story</h2><p>Drag any day into a new position. Day numbers update automatically.</p></div>
+              <div><h2>Day-by-day story</h2><p>Reorder days and add flexible content blocks for hotels, activities, maps, highlights, text, and dividers.</p></div>
               <div class="section-heading-actions">
                 <span class="day-sort-hint"><i>⠿</i><span><strong>Drag to reorder</strong><small>Try moving Day 6 to Day 2</small></span></span>
                 <button id="addDay" class="button secondary compact" type="button">Add day ＋</button>
@@ -183,8 +189,22 @@
           <section class="form-card">
             <div class="section-number">05</div>
             <div class="section-heading">
+              <h2>Payments & policies</h2>
+              <p>These terms appear in proposals, quotations, invoices, and the customer copy.</p>
+            </div>
+            <div class="form-grid">
+              <label class="field"><span>Deposit required (%)</span><input id="depositPercent" type="number" min="0" max="100" value="30"></label>
+              <label class="field"><span>Payment methods <small>one per line</small></span><textarea id="paymentMethods" placeholder="Bank transfer&#10;Credit / debit card&#10;Cash"></textarea></label>
+              <label class="field wide"><span>Payment policy</span><textarea id="paymentPolicy" placeholder="A 30% deposit confirms the booking. The balance is due 30 days before arrival."></textarea></label>
+              <label class="field wide"><span>Cancellation policy</span><textarea id="cancellationPolicy" placeholder="Cancellations made 30 days before arrival receive a refund less committed supplier costs."></textarea></label>
+            </div>
+          </section>
+
+          <section class="form-card">
+            <div class="section-number">06</div>
+            <div class="section-heading">
               <h2>Cover image</h2>
-              <p>Choose a hero image for the dashboard and itinerary cover.</p>
+              <p>Choose a hero image or reuse an image from the local media library.</p>
             </div>
             <div class="image-uploader">
               <div id="coverPreview" class="upload-preview"><span>No image selected</span></div>
@@ -194,6 +214,8 @@
                 <p>Images are resized before being saved to your browser.</p>
               </div>
             </div>
+            <div class="media-library-head"><strong>Media library</strong><label class="button secondary compact file-button">Add media<input id="mediaUpload" type="file" accept="image/*" multiple hidden></label></div>
+            <div id="mediaLibrary" class="media-library"></div>
           </section>
 
           <div class="form-actions">
@@ -341,9 +363,12 @@
     <div class="modal-bar">
       <div><span class="eyebrow">Document preview</span><strong id="previewModalTitle">Itinerary</strong></div>
       <div class="modal-actions">
+        <span id="customerResponseActions" class="customer-response-actions" hidden><button id="approveProposal" class="button secondary compact light-action" type="button">✓ Approve</button><button id="requestChanges" class="button secondary compact light-action" type="button">Request changes</button></span>
         <button id="copyShareLink" class="button secondary compact light-action" type="button">Copy QR link</button>
         <button id="printItinerary" class="button secondary compact light-action" type="button">Print</button>
-        <button id="downloadItinerary" class="button primary compact" type="button">Download PDF</button>
+        <button id="downloadQuotation" class="button secondary compact light-action" type="button">Quotation PDF</button>
+        <button id="downloadInvoice" class="button secondary compact light-action" type="button">Invoice PDF</button>
+        <button id="downloadItinerary" class="button primary compact" type="button">Proposal PDF</button>
         <button id="closePreview" class="icon-button light" type="button" aria-label="Close preview">×</button>
       </div>
     </div>

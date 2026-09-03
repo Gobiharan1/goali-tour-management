@@ -13,7 +13,10 @@ Open the published GitHub Pages site:
 - Create, edit, duplicate, archive, restore, and delete tour proposals
 - Build day-by-day itineraries with customer details, pricing, notes, and images
 - Drag day cards into any position with automatic day-number and default-title updates (plus accessible up/down controls)
+- Build each day with reorderable text, activity, hotel, map/location, highlight, and divider blocks
 - Work in a bright, Notion-inspired interface using the eye-friendly Poppins typeface
+- Reuse locally saved images from the media library and apply them as itinerary covers
+- Undo and redo day-builder changes, recover earlier saved versions, autosave drafts, improve writing, and run a completeness check
 - Upload a company logo and automatically select a matching brand color
 - Choose from seven professional PDF designs or save reusable custom designs
 - Use premium travel-magazine, campaign-split, and organic-editorial compositions inspired by modern brochure design
@@ -23,6 +26,9 @@ Open the published GitHub Pages site:
 - Download a precise vector PDF with deterministic A4 page templates, or use browser printing as a fallback
 - Add a QR code to every PDF that opens a compressed, read-only mobile copy of the itinerary
 - Copy the QR sharing link directly from the document preview
+- Let customers record approval or copy a change-request response from the shared mobile view
+- Download separate proposal, quotation, and invoice PDFs
+- Add deposit percentages, payment methods, payment policy, and cancellation policy to every customer document
 - Search and filter the itinerary library
 - Export and import a complete JSON workspace backup
 - Responsive dashboard for desktop, tablet, and mobile

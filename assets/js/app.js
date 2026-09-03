@@ -2,6 +2,7 @@
   'use strict';
 
   const STORAGE_KEY = 'goali-itinerary-studio-v1';
+  const DRAFT_KEY = 'goali-itinerary-draft-v1';
   const Designs = window.GoaliDesigns;
   const CATEGORIES = [
     'Sri Lanka Family Tours',
@@ -16,6 +17,14 @@
     tropical: { primary: '#075a55', accent: '#c9ec5b', paper: '#f6f1e8', ink: '#15342d', fontPair: 'modern', coverStyle: 'magazine', dayLayout: 'collage', density: 'comfortable', cornerStyle: 'round' },
     coastal: { primary: '#176b72', accent: '#e39b61', paper: '#fffdf8', ink: '#19343a', fontPair: 'elegant', coverStyle: 'split', dayLayout: 'split', density: 'airy', cornerStyle: 'round' },
     luxury: { primary: '#17243d', accent: '#c8a55a', paper: '#fbfaf7', ink: '#172033', fontPair: 'classic', coverStyle: 'bold', dayLayout: 'text', density: 'compact', cornerStyle: 'sharp' }
+  };
+  const DAY_BLOCKS = {
+    text: { label: 'Text', placeholder: 'Add an extra story paragraph...' },
+    activity: { label: 'Activity', placeholder: 'Activity name, time, and what guests will experience...' },
+    hotel: { label: 'Hotel', placeholder: 'Hotel name, room type, meal plan, and check-in notes...' },
+    map: { label: 'Map / location', placeholder: 'Location, meeting point, or map link...' },
+    highlight: { label: 'Highlight', placeholder: 'A memorable moment or useful callout...' },
+    divider: { label: 'Divider', placeholder: '' }
   };
 
   const sampleTour = {
@@ -37,6 +46,10 @@
     priceAmount: 2450,
     designId: 'editorial-forest',
     importantNotes: 'Rates are based on two guests sharing. The itinerary can be adjusted around your preferred pace, room style, and interests.',
+    depositPercent: 30,
+    paymentMethods: ['Bank transfer', 'Credit / debit card'],
+    paymentPolicy: 'A 30% deposit confirms the booking. The remaining balance is due 30 days before arrival.',
+    cancellationPolicy: 'Cancellations made more than 30 days before arrival are refundable less committed supplier costs. Later cancellations may be non-refundable.',
     coverImage: 'assets/uploads/tours/gallery_20260813_121836_8b9055ea73.jpg',
     days: [
       { title: 'A warm island welcome', details: 'Arrive in Colombo and travel south along the coast. Settle into your boutique stay before an unhurried sunset walk through Galle Fort.', image: 'assets/uploads/tours/day_1_20260811_094104_7c53df62.png' },
@@ -51,7 +64,7 @@
   };
 
   const defaultState = () => ({
-    version: 2,
+    version: 3,
     settings: {
       companyName: 'Goali Tours',
       contact: 'hello@goalitours.com · +94 77 000 0000',
@@ -60,6 +73,7 @@
       defaultDesignId: 'editorial-forest'
     },
     designs: [],
+    media: [],
     tours: [sampleTour]
   });
 
@@ -74,6 +88,10 @@
   let activePdfContext = null;
   let draggedDayIndex = null;
   let dayDropPosition = 'before';
+  let draggedBlock = null;
+  let undoStack = [];
+  let redoStack = [];
+  let draftTimer = 0;
   let toastTimer;
 
   const $ = (selector, root = document) => root.querySelector(selector);
@@ -99,16 +117,23 @@
   function migrateState(workspace) {
     const fallback = defaultState();
     const migrated = clone(workspace || fallback);
-    migrated.version = 2;
+    migrated.version = 3;
     migrated.settings = { ...fallback.settings, ...(migrated.settings || {}) };
     migrated.designs = Array.isArray(migrated.designs)
       ? migrated.designs.map(design => ({ ...Designs.normalize(design), builtIn: false }))
       : [];
+    migrated.media = Array.isArray(migrated.media) ? migrated.media.filter(item => safeImage(item?.src)).slice(0, 40) : [];
     const availableIds = new Set(Designs.all(migrated.designs).map(design => design.id));
     if (!availableIds.has(migrated.settings.defaultDesignId)) migrated.settings.defaultDesignId = 'editorial-forest';
     migrated.tours = Array.isArray(migrated.tours) ? migrated.tours : [];
     migrated.tours.forEach(tour => {
       if (!availableIds.has(tour.designId)) tour.designId = migrated.settings.defaultDesignId;
+      tour.depositPercent = Math.max(0, Math.min(100, Number(tour.depositPercent ?? 30)));
+      tour.paymentMethods = normalizeLines(tour.paymentMethods);
+      tour.paymentPolicy = String(tour.paymentPolicy || 'A deposit confirms the booking. The balance is due before arrival.');
+      tour.cancellationPolicy = String(tour.cancellationPolicy || 'Cancellation charges depend on notice and committed supplier costs.');
+      tour.days = Array.isArray(tour.days) ? tour.days.map(day => ({ ...day, blocks: Array.isArray(day.blocks) ? day.blocks : [] })) : [];
+      tour.versions = Array.isArray(tour.versions) ? tour.versions.slice(-10) : [];
     });
     return migrated;
   }
@@ -300,6 +325,7 @@
             <button class="button primary" data-action="preview" data-id="${escapeHtml(tour.id)}" type="button">Preview</button>
             <button class="button secondary" data-action="edit" data-id="${escapeHtml(tour.id)}" type="button">Edit</button>
             <button class="text-button more-actions" data-action="duplicate" data-id="${escapeHtml(tour.id)}" type="button">Duplicate</button>
+            ${tour.versions?.length ? `<button class="text-button" data-action="restore-version" data-id="${escapeHtml(tour.id)}" type="button">Restore last save</button>` : ''}
             <button class="text-button danger-text" data-action="archive" data-id="${escapeHtml(tour.id)}" type="button" aria-label="Move to recycle bin">Archive</button>
           </div>
         </div>
@@ -316,13 +342,21 @@
     $('#tourCategory').value = CATEGORIES[0];
     $('#tourDesign').value = state.settings.defaultDesignId;
     $('#priceCurrency').value = 'LKR';
+    $('#depositPercent').value = 30;
+    $('#paymentMethods').value = 'Bank transfer\nCredit / debit card';
+    $('#paymentPolicy').value = 'A 30% deposit confirms the booking. The remaining balance is due 30 days before arrival.';
+    $('#cancellationPolicy').value = 'Cancellations made more than 30 days before arrival are refundable less committed supplier costs.';
     $('#editorEyebrow').textContent = 'New proposal';
     $('#editorTitle').textContent = 'Create an itinerary';
-    $('#saveStatus').textContent = 'Changes save on submit';
+    $('#saveStatus').textContent = 'Draft autosave is on';
     draftCover = '';
-    draftDays = Array.from({ length: 5 }, (_, index) => ({ title: `Day ${index + 1}`, details: '', image: '' }));
+    draftDays = Array.from({ length: 5 }, (_, index) => ({ title: `Day ${index + 1}`, details: '', image: '', blocks: [] }));
+    undoStack = [];
+    redoStack = [];
+    updateHistoryButtons();
     renderDayEditors();
     renderCoverPreview();
+    renderMediaLibrary();
   }
 
   function editTour(id) {
@@ -344,15 +378,24 @@
     $('#priceCurrency').value = tour.priceCurrency || 'LKR';
     $('#priceAmount').value = Number(tour.priceAmount || 0);
     $('#importantNotes').value = tour.importantNotes || '';
+    $('#depositPercent').value = Number(tour.depositPercent ?? 30);
+    $('#paymentMethods').value = normalizeLines(tour.paymentMethods).join('\n');
+    $('#paymentPolicy').value = tour.paymentPolicy || '';
+    $('#cancellationPolicy').value = tour.cancellationPolicy || '';
     $('#tourDesign').value = Designs.find(tour.designId || state.settings.defaultDesignId, state.designs).id;
     draftCover = safeImage(tour.coverImage);
     draftDays = clone(tour.days || []);
-    if (!draftDays.length) draftDays = [{ title: 'Day 1', details: '', image: '' }];
+    if (!draftDays.length) draftDays = [{ title: 'Day 1', details: '', image: '', blocks: [] }];
+    draftDays = draftDays.map(day => ({ ...day, blocks: Array.isArray(day.blocks) ? day.blocks : [] }));
+    undoStack = [];
+    redoStack = [];
+    updateHistoryButtons();
     $('#editorEyebrow').textContent = tour.packageId || 'Proposal';
     $('#editorTitle').textContent = 'Edit itinerary';
     $('#saveStatus').textContent = `Last saved ${formatDate(tour.updatedAt)}`;
     renderDayEditors();
     renderCoverPreview();
+    renderMediaLibrary();
     setView('editor');
   }
 
@@ -360,13 +403,29 @@
     return $$('.day-editor').map((row, index) => ({
       title: $('.day-title', row).value.trim(),
       details: $('.day-details', row).value.trim(),
-      image: safeImage(draftDays[index]?.image)
+      image: safeImage(draftDays[index]?.image),
+      blocks: $$('.day-block', row).map(block => ({
+        id: block.dataset.blockId,
+        type: block.dataset.blockType,
+        content: $('.day-block-input', block)?.value.trim() || ''
+      }))
     }));
+  }
+
+  function dayBlockHtml(block, dayIndex, blockIndex, total) {
+    const definition = DAY_BLOCKS[block.type] || DAY_BLOCKS.text;
+    return `<div class="day-block ${block.type === 'divider' ? 'is-divider' : ''}" data-block-id="${escapeHtml(block.id)}" data-block-type="${escapeHtml(block.type)}" data-day="${dayIndex}" data-block-index="${blockIndex}">
+      <button class="block-drag-handle" type="button" draggable="true" data-block-drag="${blockIndex}" data-day="${dayIndex}" aria-label="Drag ${escapeHtml(definition.label)} block">⠿</button>
+      <span class="block-kind">${escapeHtml(definition.label)}</span>
+      ${block.type === 'divider' ? '<span class="block-divider"></span>' : `<textarea class="day-block-input" rows="2" placeholder="${escapeHtml(definition.placeholder)}">${escapeHtml(block.content || '')}</textarea>`}
+      <span class="block-actions"><button type="button" data-move-block="${blockIndex}" data-day="${dayIndex}" data-direction="up" ${blockIndex === 0 ? 'disabled' : ''}>↑</button><button type="button" data-move-block="${blockIndex}" data-day="${dayIndex}" data-direction="down" ${blockIndex === total - 1 ? 'disabled' : ''}>↓</button><button type="button" data-remove-block="${blockIndex}" data-day="${dayIndex}" aria-label="Remove ${escapeHtml(definition.label)} block">×</button></span>
+    </div>`;
   }
 
   function renderDayEditors() {
     $('#dayPlans').innerHTML = draftDays.map((day, index) => {
       const image = safeImage(day.image);
+      const blocks = Array.isArray(day.blocks) ? day.blocks : [];
       return `<article class="day-editor" data-day-index="${index}">
         <button class="remove-day" type="button" data-remove-day="${index}" aria-label="Remove day ${index + 1}">×</button>
         <div class="day-reorder-tools">
@@ -387,10 +446,85 @@
           ${image ? `<img src="${escapeHtml(image)}" alt="Day ${index + 1} preview">` : ''}
           <label>${image ? 'Change image' : 'Add image'}<input class="day-image-input" type="file" accept="image/*" hidden></label>
         </div>
+        <div class="day-block-builder">
+          <div class="block-toolbar"><strong>Page blocks</strong><span>${Object.entries(DAY_BLOCKS).map(([type, item]) => `<button type="button" data-add-block="${type}" data-day="${index}">＋ ${escapeHtml(item.label)}</button>`).join('')}</span></div>
+          <div class="day-block-list">${blocks.map((block, blockIndex) => dayBlockHtml(block, index, blockIndex, blocks.length)).join('') || '<p class="block-empty">Add optional blocks to enrich this day in the PDF.</p>'}</div>
+        </div>
       </article>`;
     }).join('');
     $('#durationDays').value = draftDays.length;
     $('#durationNights').value = Math.max(0, Math.min(Number($('#durationNights').value || 0), draftDays.length));
+  }
+
+  function updateHistoryButtons() {
+    $('#undoEditor').disabled = undoStack.length === 0;
+    $('#redoEditor').disabled = redoStack.length === 0;
+  }
+
+  function rememberDayState() {
+    draftDays = readDayInputs();
+    undoStack.push(clone(draftDays));
+    if (undoStack.length > 30) undoStack.shift();
+    redoStack = [];
+    updateHistoryButtons();
+  }
+
+  function restoreDayState(source, destination, message) {
+    if (!source.length) return;
+    destination.push(clone(readDayInputs()));
+    draftDays = source.pop();
+    renderDayEditors();
+    updateHistoryButtons();
+    showToast(message);
+  }
+
+  function renderMediaLibrary() {
+    const holder = $('#mediaLibrary');
+    if (!holder) return;
+    holder.innerHTML = state.media.length ? state.media.map(item => `<button type="button" class="media-item" data-use-media="${escapeHtml(item.id)}" title="Use as cover"><img src="${escapeHtml(item.src)}" alt="Reusable travel media"><span>Use as cover</span></button>`).join('') : '<p>No saved media yet. Images added here stay available in this browser.</p>';
+  }
+
+  function scheduleDraftSave() {
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(() => {
+      try {
+        const tour = getTourFromForm();
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({ savedAt: new Date().toISOString(), tour }));
+        $('#saveStatus').textContent = 'Draft saved locally';
+      } catch (_) {}
+    }, 700);
+  }
+
+  function checkItinerary() {
+    const tour = getTourFromForm();
+    const missing = [];
+    if (!tour.tourName) missing.push('tour name');
+    if (!tour.customerName) missing.push('customer name');
+    if (!tour.travelDates) missing.push('travel dates');
+    if (!tour.locations) missing.push('route');
+    if (!tour.priceAmount) missing.push('price');
+    if (!tour.paymentMethods.length) missing.push('payment methods');
+    if (!tour.paymentPolicy) missing.push('payment policy');
+    if (!tour.cancellationPolicy) missing.push('cancellation policy');
+    const emptyDays = tour.days.filter(day => !day.title || !day.details).length;
+    if (emptyDays) missing.push(`${emptyDays} incomplete day${emptyDays === 1 ? '' : 's'}`);
+    showToast(missing.length ? `Check: add ${missing.join(', ')}` : 'Itinerary check passed - ready to share');
+  }
+
+  function improveWriting() {
+    const polish = value => {
+      const source = String(value || '').trim().replace(/\s+/g, ' ');
+      if (!source) return '';
+      const sentence = source[0].toUpperCase() + source.slice(1);
+      return /[.!?]$/.test(sentence) ? sentence : `${sentence}.`;
+    };
+    rememberDayState();
+    $('#customerDetails').value = polish($('#customerDetails').value);
+    $('#importantNotes').value = polish($('#importantNotes').value);
+    draftDays = readDayInputs().map(day => ({ ...day, title: polish(day.title).replace(/[.]$/, ''), details: polish(day.details), blocks: (day.blocks || []).map(block => ({ ...block, content: block.type === 'divider' ? '' : polish(block.content) })) }));
+    renderDayEditors();
+    scheduleDraftSave();
+    showToast('Writing polished for clarity and consistency');
   }
 
   function renumberDefaultDayTitles() {
@@ -401,7 +535,7 @@
   }
 
   function moveDay(fromIndex, toIndex, message = '') {
-    draftDays = readDayInputs();
+    rememberDayState();
     if (fromIndex < 0 || fromIndex >= draftDays.length || toIndex < 0 || toIndex >= draftDays.length || fromIndex === toIndex) return;
     const [movedDay] = draftDays.splice(fromIndex, 1);
     draftDays.splice(toIndex, 0, movedDay);
@@ -480,8 +614,13 @@
       priceAmount: Math.max(0, Number($('#priceAmount').value || 0)),
       designId: $('#tourDesign').value || state.settings.defaultDesignId,
       importantNotes: $('#importantNotes').value.trim(),
+      depositPercent: Math.max(0, Math.min(100, Number($('#depositPercent').value || 0))),
+      paymentMethods: normalizeLines($('#paymentMethods').value),
+      paymentPolicy: $('#paymentPolicy').value.trim(),
+      cancellationPolicy: $('#cancellationPolicy').value.trim(),
       coverImage: safeImage(draftCover),
       days,
+      versions: previous ? [...(previous.versions || []), { savedAt: previous.updatedAt, snapshot: { ...clone(previous), coverImage: '', days: (previous.days || []).map(day => ({ ...clone(day), image: '' })), versions: [] } }].slice(-10) : [],
       status: previous?.status || 'active',
       createdAt: previous?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -500,6 +639,7 @@
     if (index >= 0) state.tours[index] = tour;
     else state.tours.unshift(tour);
     if (saveState('Itinerary saved to this browser')) {
+      localStorage.removeItem(DRAFT_KEY);
       $('#tourId').value = '';
       setView('dashboard');
     }
@@ -517,6 +657,19 @@
     duplicate.status = 'active';
     state.tours.unshift(duplicate);
     saveState('A new editable copy was created');
+  }
+
+  function restoreLatestVersion(id) {
+    const index = state.tours.findIndex(tour => tour.id === id);
+    const current = state.tours[index];
+    const version = current?.versions?.at(-1);
+    if (!version?.snapshot) return showToast('No earlier saved version is available.');
+    const remaining = current.versions.slice(0, -1);
+    const restored = clone(version.snapshot);
+    restored.coverImage = current.coverImage;
+    restored.days = (restored.days || []).map((day, dayIndex) => ({ ...day, image: current.days?.[dayIndex]?.image || '' }));
+    state.tours[index] = { ...restored, versions: remaining, updatedAt: new Date().toISOString() };
+    saveState('Previous itinerary version restored');
   }
 
   function archiveTour(id) {
@@ -563,6 +716,14 @@
     return normalized.map(item => `<li>${escapeHtml(item)}</li>`).join('');
   }
 
+  function dayBlocksHtml(blocks = []) {
+    return blocks.map(block => {
+      const label = DAY_BLOCKS[block.type]?.label || 'Note';
+      if (block.type === 'divider') return '<hr class="pdf-block-divider">';
+      return `<div class="pdf-day-block pdf-day-block-${escapeHtml(block.type)}"><span>${escapeHtml(label)}</span><p>${escapeHtml(block.content || '')}</p></div>`;
+    }).join('');
+  }
+
   function logoHtml(className = 'brand-logo', brand = state.settings) {
     const logo = safeImage(brand.logo);
     return `<span class="${className}">${logo ? `<img src="${escapeHtml(logo)}" alt="${escapeHtml(brand.companyName)} logo">` : escapeHtml(initials(brand.companyName))}</span>`;
@@ -591,11 +752,16 @@
       priceCurrency: limit(tour.priceCurrency, 8),
       priceAmount: Number(tour.priceAmount || 0),
       importantNotes: limit(tour.importantNotes, compact ? 240 : 1400),
+      depositPercent: Number(tour.depositPercent || 0),
+      paymentMethods: normalizeLines(tour.paymentMethods).slice(0, 8).map(item => limit(item, 100)),
+      paymentPolicy: limit(tour.paymentPolicy, compact ? 260 : 1400),
+      cancellationPolicy: limit(tour.cancellationPolicy, compact ? 260 : 1400),
       coverImage: shareableImage(tour.coverImage),
       days: (tour.days || []).slice(0, compact ? 12 : 30).map(day => ({
         title: limit(day.title, 160),
         details: limit(day.details, compact ? 260 : 1800),
-        image: shareableImage(day.image)
+        image: shareableImage(day.image),
+        blocks: (day.blocks || []).slice(0, 12).map(block => ({ type: limit(block.type, 20), content: limit(block.content, compact ? 120 : 600) }))
       }))
     };
   }
@@ -861,7 +1027,7 @@
             ${image ? `<div class="day-story-image"><img src="${escapeHtml(image)}" alt="${escapeHtml(day.title || `Day ${index + 1}`)}"></div>` : ''}
             ${secondaryImage && secondaryImage !== image ? `<div class="day-story-secondary"><img src="${escapeHtml(secondaryImage)}" alt="A glimpse of the journey ahead"></div>` : ''}
             <div class="day-story-ordinal" aria-hidden="true">${String(index + 1).padStart(2, '0')}</div>
-            <div class="day-story-body"><span>Day ${index + 1}</span><h3>${escapeHtml(day.title || `Day ${index + 1}`)}</h3><p>${escapeHtml(day.details || 'This day is ready to be personalized around your interests and preferred pace.')}</p></div>
+            <div class="day-story-body"><span>Day ${index + 1}</span><h3>${escapeHtml(day.title || `Day ${index + 1}`)}</h3><p>${escapeHtml(day.details || 'This day is ready to be personalized around your interests and preferred pace.')}</p>${dayBlocksHtml(day.blocks)}</div>
           </article>
         </div>
       </section>`;
@@ -879,6 +1045,15 @@
         ${qrImage ? `<div class="pdf-qr-panel"><img src="${qrImage}" alt="QR code to open this itinerary on a phone"><div><span>Take this journey with you</span><h3>Scan to read on your phone</h3><p>Open a read-only copy of this itinerary and download the PDF again whenever you need it.</p></div></div>` : ''}
       </div>
     </section>`;
+
+    const policiesPage = `<section class="pdf-page pdf-policy-page"><div class="pdf-page-inner">
+      <header class="pdf-section-head"><p class="pdf-kicker">Booking information</p><h2>Payments & policies</h2></header>
+      <div class="policy-grid">
+        <div class="policy-card"><span>Payment methods</span><h3>How to pay</h3><ul>${listHtml(tour.paymentMethods)}</ul></div>
+        <div class="policy-card"><span>Deposit</span><h3>${Number(tour.depositPercent || 0)}% to confirm</h3><p>${escapeHtml(tour.paymentPolicy || 'A deposit confirms the booking and the remaining balance is due before arrival.')}</p></div>
+        <div class="policy-card wide"><span>Cancellation policy</span><p>${escapeHtml(tour.cancellationPolicy || 'Cancellation charges depend on notice and committed supplier costs.')}</p></div>
+      </div>
+    </div></section>`;
 
     const closing = `<section class="pdf-page pdf-closing">
       ${logoHtml('brand-logo', brand)}
@@ -902,13 +1077,14 @@
         </div>
       </div>
     </section>`;
-    const orderedSections = { overview, days: dayPages, package: packagePage };
+    const orderedSections = { overview, days: dayPages, package: `${packagePage}${policiesPage}` };
     const documentHtml = `${design.showCover ? coverPage : ''}${design.sectionOrder.map(section => orderedSections[section]).join('')}${design.showClosing ? closing : ''}`;
     const fontPair = Designs.FONT_PAIRS[design.fontPair];
     const documentElement = $('#itineraryDocument');
     const onPrimary = contrastText(design.primary);
 
     $('#previewModalTitle').textContent = sharedSnapshot ? `${tour.tourName} · Shared copy` : tour.tourName;
+    $('#customerResponseActions').hidden = !sharedSnapshot;
     documentElement.style.setProperty('--doc-brand', design.primary);
     documentElement.style.setProperty('--doc-brand-rgb', hexToRgb(design.primary).join(', '));
     documentElement.style.setProperty('--doc-on-primary', onPrimary);
@@ -939,8 +1115,8 @@
     document.body.classList.remove('modal-open');
   }
 
-  async function downloadPdf() {
-    const button = $('#downloadItinerary');
+  async function downloadPdf(documentType = 'proposal') {
+    const button = documentType === 'quotation' ? $('#downloadQuotation') : documentType === 'invoice' ? $('#downloadInvoice') : $('#downloadItinerary');
     if (!window.GoaliPdf?.exportItinerary || !activePdfContext) {
       showToast('The precise PDF engine did not load. Use Print instead.');
       return;
@@ -948,14 +1124,16 @@
     button.disabled = true;
     button.textContent = 'Building precise PDF…';
     try {
-      const result = await window.GoaliPdf.exportItinerary(activePdfContext, activePreviewFileName);
-      showToast(`PDF downloaded · ${result.pages} precise A4 pages`);
+      const context = { ...activePdfContext, documentType };
+      const filename = activePreviewFileName.replace(/\.pdf$/i, `-${documentType}.pdf`);
+      const result = await window.GoaliPdf.exportItinerary(context, filename);
+      showToast(`${documentType[0].toUpperCase() + documentType.slice(1)} PDF downloaded · ${result.pages} A4 pages`);
     } catch (error) {
       console.error(error);
       showToast('Direct download failed. Print / Save PDF is still available.');
     } finally {
       button.disabled = false;
-      button.textContent = 'Download PDF';
+      button.textContent = documentType === 'quotation' ? 'Quotation PDF' : documentType === 'invoice' ? 'Invoice PDF' : 'Proposal PDF';
     }
   }
 
@@ -974,6 +1152,14 @@
       field.remove();
     }
     showToast('QR link copied — anyone with it can read the itinerary');
+  }
+
+  async function copyCustomerResponse(status) {
+    if (!activePdfContext) return;
+    const message = `${status === 'approved' ? 'APPROVED' : 'CHANGES REQUESTED'}: ${activePdfContext.tour.tourName} (${activePdfContext.tour.packageId || 'proposal'}) by ${activePdfContext.tour.customerName || 'customer'}.`;
+    try { await navigator.clipboard.writeText(message); } catch (_) {}
+    localStorage.setItem(`goali-response-${activePdfContext.tour.packageId || 'shared'}`, JSON.stringify({ status, message, createdAt: new Date().toISOString() }));
+    showToast(status === 'approved' ? 'Approval recorded and confirmation copied' : 'Change request copied - add your notes when sending it');
   }
 
   async function openSharedPreviewFromUrl() {
@@ -1088,6 +1274,39 @@
 
   function bindEvents() {
     document.addEventListener('click', event => {
+      const addBlock = event.target.closest('[data-add-block]');
+      if (addBlock) {
+        rememberDayState();
+        const dayIndex = Number(addBlock.dataset.day);
+        draftDays[dayIndex].blocks ||= [];
+        draftDays[dayIndex].blocks.push({ id: uid(), type: addBlock.dataset.addBlock, content: '' });
+        renderDayEditors();
+        showToast(`${DAY_BLOCKS[addBlock.dataset.addBlock]?.label || 'Content'} block added`);
+        return;
+      }
+      const removeBlock = event.target.closest('[data-remove-block]');
+      if (removeBlock) {
+        rememberDayState();
+        draftDays[Number(removeBlock.dataset.day)].blocks.splice(Number(removeBlock.dataset.removeBlock), 1);
+        renderDayEditors();
+        return;
+      }
+      const moveBlock = event.target.closest('[data-move-block]');
+      if (moveBlock) {
+        rememberDayState();
+        const blocks = draftDays[Number(moveBlock.dataset.day)].blocks;
+        const index = Number(moveBlock.dataset.moveBlock);
+        const next = moveBlock.dataset.direction === 'up' ? index - 1 : index + 1;
+        if (next >= 0 && next < blocks.length) [blocks[index], blocks[next]] = [blocks[next], blocks[index]];
+        renderDayEditors();
+        return;
+      }
+      const mediaChoice = event.target.closest('[data-use-media]');
+      if (mediaChoice) {
+        const media = state.media.find(item => item.id === mediaChoice.dataset.useMedia);
+        if (media) { draftCover = media.src; renderCoverPreview(); showToast('Media applied as the cover image'); }
+        return;
+      }
       const designChoice = event.target.closest('[data-select-design]');
       if (designChoice) {
         selectDesign(designChoice.dataset.selectDesign);
@@ -1141,6 +1360,7 @@
         if (name === 'preview') openPreview(id);
         if (name === 'edit') editTour(id);
         if (name === 'duplicate') duplicateTour(id);
+        if (name === 'restore-version') restoreLatestVersion(id);
         if (name === 'archive') archiveTour(id);
         if (name === 'restore') restoreTour(id);
         if (name === 'delete') deleteTour(id);
@@ -1148,7 +1368,7 @@
       }
       const remove = event.target.closest('[data-remove-day]');
       if (remove) {
-        draftDays = readDayInputs();
+        rememberDayState();
         if (draftDays.length <= 1) return showToast('An itinerary needs at least one day.');
         draftDays.splice(Number(remove.dataset.removeDay), 1);
         renumberDefaultDayTitles();
@@ -1157,6 +1377,7 @@
     });
 
     $('#tourForm').addEventListener('submit', saveTour);
+    $('#tourForm').addEventListener('input', scheduleDraftSave);
     $('#brandForm').addEventListener('submit', saveBrand);
     $('#designForm').addEventListener('submit', saveDesign);
     $('#newDesign').addEventListener('click', newCustomDesign);
@@ -1181,17 +1402,25 @@
     $('#mobileClose').addEventListener('click', closeMobileMenu);
     $('#sidebarBackdrop').addEventListener('click', closeMobileMenu);
     $('#closePreview').addEventListener('click', closePreview);
-    $('#downloadItinerary').addEventListener('click', downloadPdf);
+    $('#downloadItinerary').addEventListener('click', () => downloadPdf('proposal'));
+    $('#downloadQuotation').addEventListener('click', () => downloadPdf('quotation'));
+    $('#downloadInvoice').addEventListener('click', () => downloadPdf('invoice'));
     $('#copyShareLink').addEventListener('click', copyShareLink);
+    $('#approveProposal').addEventListener('click', () => copyCustomerResponse('approved'));
+    $('#requestChanges').addEventListener('click', () => copyCustomerResponse('changes'));
     $('#printItinerary').addEventListener('click', () => window.print());
     $('#exportBackup').addEventListener('click', exportBackup);
     $('#importBackup').addEventListener('change', event => event.target.files[0] && importBackup(event.target.files[0]));
     $('#addDay').addEventListener('click', () => {
-      draftDays = readDayInputs();
-      draftDays.push({ title: `Day ${draftDays.length + 1}`, details: '', image: '' });
+      rememberDayState();
+      draftDays.push({ title: `Day ${draftDays.length + 1}`, details: '', image: '', blocks: [] });
       renderDayEditors();
       $$('.day-editor').at(-1)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
+    $('#undoEditor').addEventListener('click', () => restoreDayState(undoStack, redoStack, 'Day editor change undone'));
+    $('#redoEditor').addEventListener('click', () => restoreDayState(redoStack, undoStack, 'Day editor change restored'));
+    $('#checkItinerary').addEventListener('click', checkItinerary);
+    $('#improveWriting').addEventListener('click', improveWriting);
 
     $('#dayPlans').addEventListener('change', async event => {
       if (!event.target.matches('.day-image-input') || !event.target.files[0]) return;
@@ -1216,6 +1445,47 @@
       event.dataTransfer.effectAllowed = 'move';
       event.dataTransfer.setData('text/plain', String(draggedDayIndex));
       requestAnimationFrame(() => handle.closest('.day-editor')?.classList.add('is-dragging'));
+    });
+
+    $('#dayPlans').addEventListener('dragstart', event => {
+      const handle = event.target.closest('[data-block-drag]');
+      if (!handle) return;
+      draftDays = readDayInputs();
+      draggedBlock = { day: Number(handle.dataset.day), index: Number(handle.dataset.blockDrag) };
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', `block-${draggedBlock.day}-${draggedBlock.index}`);
+      handle.closest('.day-block').classList.add('is-dragging');
+    });
+
+    $('#dayPlans').addEventListener('dragover', event => {
+      if (!draggedBlock) return;
+      const target = event.target.closest('.day-block');
+      if (!target || Number(target.dataset.day) !== draggedBlock.day) return;
+      event.preventDefault();
+      $$('.day-block').forEach(block => block.classList.remove('drop-block'));
+      target.classList.add('drop-block');
+    });
+
+    $('#dayPlans').addEventListener('drop', event => {
+      if (!draggedBlock) return;
+      const target = event.target.closest('.day-block');
+      if (!target || Number(target.dataset.day) !== draggedBlock.day) return;
+      event.preventDefault();
+      const targetIndex = Number(target.dataset.blockIndex);
+      undoStack.push(clone(draftDays));
+      redoStack = [];
+      const blocks = draftDays[draggedBlock.day].blocks;
+      const [block] = blocks.splice(draggedBlock.index, 1);
+      blocks.splice(targetIndex, 0, block);
+      draggedBlock = null;
+      renderDayEditors();
+      updateHistoryButtons();
+      showToast('Page block reordered');
+    });
+
+    $('#dayPlans').addEventListener('dragend', () => {
+      draggedBlock = null;
+      $$('.day-block').forEach(block => block.classList.remove('is-dragging', 'drop-block'));
     });
 
     $('#dayPlans').addEventListener('dragover', event => {
@@ -1261,6 +1531,19 @@
       }
     });
     $('#removeCover').addEventListener('click', () => { draftCover = ''; renderCoverPreview(); });
+    $('#mediaUpload').addEventListener('change', async event => {
+      const files = [...event.target.files].slice(0, 8);
+      for (const file of files) {
+        try {
+          const src = await resizeImage(file, 1100, .72);
+          state.media.unshift({ id: uid(), src, name: file.name.slice(0, 100), createdAt: new Date().toISOString() });
+        } catch (_) {}
+      }
+      state.media = state.media.slice(0, 40);
+      saveState(files.length ? 'Media added to your reusable library' : 'No media added');
+      renderMediaLibrary();
+      event.target.value = '';
+    });
 
     $('#brandColor').addEventListener('input', event => {
       $('#brandColorText').value = event.target.value;
