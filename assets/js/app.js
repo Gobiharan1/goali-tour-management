@@ -3,6 +3,7 @@
 
   const STORAGE_KEY = 'goali-itinerary-studio-v1';
   const DRAFT_KEY = 'goali-itinerary-draft-v1';
+  const UI_BRAND_COLOR = '#173f32';
   const Designs = window.GoaliDesigns;
   const DEFAULT_CATEGORIES = [
     'Sri Lanka Family Tours',
@@ -243,10 +244,10 @@
 
   function applyBrand() {
     const color = /^#[0-9a-f]{6}$/i.test(state.settings.brandColor) ? state.settings.brandColor : '#173f32';
-    const [r, g, b] = hexToRgb(color);
-    document.documentElement.style.setProperty('--brand', color);
-    document.documentElement.style.setProperty('--brand-rgb', `${r}, ${g}, ${b}`);
-    document.documentElement.style.setProperty('--brand-dark', darken(color));
+    document.documentElement.style.setProperty('--brand', UI_BRAND_COLOR);
+    document.documentElement.style.setProperty('--brand-rgb', hexToRgb(UI_BRAND_COLOR).join(', '));
+    document.documentElement.style.setProperty('--brand-dark', darken(UI_BRAND_COLOR));
+    $('#brandPreview').style.setProperty('--preview-brand', color);
     updateLogo($('#sidebarLogo'), state.settings.logo);
     updateLogo($('#brandLogoPreview'), state.settings.logo);
     updateLogo($('#previewLogo'), state.settings.logo);
@@ -1041,8 +1042,12 @@
   async function openPreview(id, designOverride = null, sharedSnapshot = null) {
     const tour = sharedSnapshot?.tour || state.tours.find(item => item.id === id);
     if (!tour) return;
-    const design = Designs.normalize(designOverride || sharedSnapshot?.design || Designs.find(tour.designId || state.settings.defaultDesignId, state.designs));
     const brand = sharedSnapshot?.brand || state.settings;
+    const selectedDesign = designOverride || sharedSnapshot?.design || Designs.find(tour.designId || state.settings.defaultDesignId, state.designs);
+    const design = Designs.normalize(selectedDesign);
+    if (!designOverride && selectedDesign?.builtIn !== false && /^#[0-9a-f]{6}$/i.test(brand.brandColor || '')) {
+      design.primary = brand.brandColor;
+    }
     const cover = safeImage(tour.coverImage || tour.days?.find(day => safeImage(day.image))?.image);
     const storyImages = [...new Set([cover, ...(tour.days || []).map(day => safeImage(day.image)).filter(Boolean)].filter(Boolean))];
     const customer = tour.customerName || 'Our valued guest';
@@ -1095,6 +1100,12 @@
       </section>`;
     }).join('');
 
+    const policySummary = `<div class="policy-grid">
+      <div class="policy-card"><span>Payment methods</span><h3>How to pay</h3><ul>${listHtml(tour.paymentMethods)}</ul></div>
+      <div class="policy-card"><span>Deposit</span><h3>${Number(tour.depositPercent || 0)}% to confirm</h3><p>${escapeHtml(tour.paymentPolicy || 'A deposit confirms the booking and the remaining balance is due before arrival.')}</p></div>
+      <div class="policy-card wide"><span>Cancellation policy</span><p>${escapeHtml(tour.cancellationPolicy || 'Cancellation charges depend on notice and committed supplier costs.')}</p></div>
+    </div>`;
+
     const packagePage = `<section class="pdf-page pdf-package-page">
       <div class="pdf-page-inner">
         <header class="pdf-section-head"><p class="pdf-kicker">The package</p><h2>Everything at a glance</h2></header>
@@ -1105,17 +1116,9 @@
         ${design.showPricing ? `<div class="price-panel"><span>Package investment</span><strong>${escapeHtml(currency(tour.priceAmount, tour.priceCurrency))}</strong></div>` : ''}
         ${design.showNotes ? `<div class="notes-panel"><h3>Important notes</h3><p>${escapeHtml(tour.importantNotes || 'Your itinerary can be refined before confirmation. Final availability and rates are confirmed at the time of booking.')}</p></div>` : ''}
         ${qrImage ? `<div class="pdf-qr-panel"><img src="${qrImage}" alt="QR code to open this itinerary on a phone"><div><span>Take this journey with you</span><h3>Scan to read on your phone</h3><p>Open a read-only copy of this itinerary and download the PDF again whenever you need it.</p></div></div>` : ''}
+        ${policySummary}
       </div>
     </section>`;
-
-    const policiesPage = `<section class="pdf-page pdf-policy-page"><div class="pdf-page-inner">
-      <header class="pdf-section-head"><p class="pdf-kicker">Booking information</p><h2>Payments & policies</h2></header>
-      <div class="policy-grid">
-        <div class="policy-card"><span>Payment methods</span><h3>How to pay</h3><ul>${listHtml(tour.paymentMethods)}</ul></div>
-        <div class="policy-card"><span>Deposit</span><h3>${Number(tour.depositPercent || 0)}% to confirm</h3><p>${escapeHtml(tour.paymentPolicy || 'A deposit confirms the booking and the remaining balance is due before arrival.')}</p></div>
-        <div class="policy-card wide"><span>Cancellation policy</span><p>${escapeHtml(tour.cancellationPolicy || 'Cancellation charges depend on notice and committed supplier costs.')}</p></div>
-      </div>
-    </div></section>`;
 
     const closing = `<section class="pdf-page pdf-closing">
       ${logoHtml('brand-logo', brand)}
@@ -1139,7 +1142,7 @@
         </div>
       </div>
     </section>`;
-    const orderedSections = { overview, days: dayPages, package: `${packagePage}${policiesPage}` };
+    const orderedSections = { overview, days: dayPages, package: packagePage };
     const documentHtml = `${design.showCover ? coverPage : ''}${design.sectionOrder.map(section => orderedSections[section]).join('')}${design.showClosing ? closing : ''}`;
     const fontPair = Designs.FONT_PAIRS[design.fontPair];
     const documentElement = $('#itineraryDocument');
@@ -1255,7 +1258,7 @@
     state.settings.companyName = $('#companyName').value.trim() || 'Goali Tours';
     state.settings.contact = $('#companyContact').value.trim();
     state.settings.brandColor = color.toLowerCase();
-    saveState('Brand settings applied to every itinerary');
+    saveState('Brand settings applied to built-in PDF designs');
   }
 
   function exportBackup() {
@@ -1635,18 +1638,12 @@
 
     $('#brandColor').addEventListener('input', event => {
       $('#brandColorText').value = event.target.value;
-      const [r, g, b] = hexToRgb(event.target.value);
-      document.documentElement.style.setProperty('--brand', event.target.value);
-      document.documentElement.style.setProperty('--brand-rgb', `${r}, ${g}, ${b}`);
-      document.documentElement.style.setProperty('--brand-dark', darken(event.target.value));
+      $('#brandPreview').style.setProperty('--preview-brand', event.target.value);
     });
     $('#brandColorText').addEventListener('input', event => {
       if (/^#[0-9a-f]{6}$/i.test(event.target.value)) {
         $('#brandColor').value = event.target.value;
-        const [r, g, b] = hexToRgb(event.target.value);
-        document.documentElement.style.setProperty('--brand', event.target.value);
-        document.documentElement.style.setProperty('--brand-rgb', `${r}, ${g}, ${b}`);
-        document.documentElement.style.setProperty('--brand-dark', darken(event.target.value));
+        $('#brandPreview').style.setProperty('--preview-brand', event.target.value);
       }
     });
     $('#companyName').addEventListener('input', event => {
@@ -1664,11 +1661,8 @@
         if (color) {
           $('#brandColor').value = color;
           $('#brandColorText').value = color;
-          const [r, g, b] = hexToRgb(color);
-          document.documentElement.style.setProperty('--brand', color);
-          document.documentElement.style.setProperty('--brand-rgb', `${r}, ${g}, ${b}`);
-          document.documentElement.style.setProperty('--brand-dark', darken(color));
-          showToast('Logo added and a matching brand color selected');
+          $('#brandPreview').style.setProperty('--preview-brand', color);
+          showToast('Logo added and a matching PDF color selected');
         } else showToast('Logo added');
       } catch (_) {
         showToast('That logo could not be used.');

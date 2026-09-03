@@ -318,11 +318,11 @@ textarea { min-height: 118px; resize: vertical; }
 .logo-upload-row { display: flex; align-items: center; gap: 16px; }
 .logo-upload-row > span:last-child { display: flex; align-items: flex-start; flex-direction: column; gap: 9px; }
 .brand-actions { margin-top: 24px; }
-.brand-preview { position: sticky; top: 32px; padding: 28px; overflow: hidden; color: #fff; border-radius: var(--radius); background: var(--brand); box-shadow: var(--shadow); }
+.brand-preview { position: sticky; top: 32px; padding: 28px; overflow: hidden; color: #fff; border-radius: var(--radius); background: var(--preview-brand, #173f32); box-shadow: var(--shadow); }
 .brand-preview > .eyebrow { color: rgba(255,255,255,.65); }
 .preview-paper { margin-top: 18px; padding: 30px; color: var(--ink); border-radius: 15px; background: var(--cream); min-height: 390px; }
 .preview-brand { display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
-.preview-paper > p { margin: 70px 0 12px; color: var(--brand); font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.preview-paper > p { margin: 70px 0 12px; color: var(--preview-brand, #173f32); font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
 .preview-paper h2 { margin: 0; font-family: "Playfair Display", serif; font-size: 35px; line-height: 1.06; }
 .preview-rule { display: block; width: 48px; height: 4px; margin: 24px 0; background: var(--gold); }
 .preview-paper small { color: var(--muted); }
@@ -395,6 +395,10 @@ textarea { min-height: 118px; resize: vertical; }
 .policy-card p, .policy-card li { color: rgba(var(--doc-ink-rgb), .7); font-size: 10px; line-height: 1.5; }
 .policy-card p { margin: 6px 0 0; white-space: pre-line; }
 .policy-card ul { margin: 7px 0 0; padding-left: 17px; }
+.pdf-package-page .policy-grid { margin-top: 13px; gap: 8px; }
+.pdf-package-page .policy-card { padding: 13px 15px; }
+.pdf-package-page .policy-card h3 { margin: 3px 0 5px; font-size: 15px; }
+.pdf-package-page .policy-card p, .pdf-package-page .policy-card li { font-size: 8px; line-height: 1.35; }
 .pdf-day-blocks { margin-top: 10px; }
 .pdf-day-block { margin-top: 9px; padding: 9px 11px; border-left: 3px solid var(--doc-accent); background: rgba(var(--doc-brand-rgb), .06); }
 .pdf-day-block > span { display: block; margin-bottom: 3px; color: var(--doc-brand); font-size: 7px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }

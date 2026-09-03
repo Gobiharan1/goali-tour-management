@@ -205,6 +205,20 @@
     return true;
   }
 
+  function imagePanel(doc, image, x, y, width, height, radius, palette, dayIndex) {
+    if (imageCover(doc, image, x, y, width, height, radius)) return;
+    setFill(doc, mix(palette.primary, palette.paper, .84));
+    rounded(doc, x, y, width, height, radius, 'F');
+    setDraw(doc, mix(palette.primary, palette.paper, .66));
+    doc.setLineWidth(.35);
+    rounded(doc, x, y, width, height, radius, 'D');
+    label(doc, 'Journey moment', x + 8, y + 13, palette.primary);
+    doc.setFont('times', 'bold');
+    doc.setFontSize(Math.min(54, height * 1.2));
+    setText(doc, mix(palette.primary, palette.paper, .62));
+    doc.text(String(dayIndex + 1).padStart(2, '0'), x + width - 8, y + height - 9, { align: 'right' });
+  }
+
   function brandMark(doc, brand, logo, x, y, palette, options = {}) {
     const { light = false, size = 12 } = options;
     const markColor = light ? [255, 255, 255] : palette.primary;
@@ -369,7 +383,7 @@
     if (['split', 'poster'].includes(layout)) {
       setFill(doc, palette.primary);
       doc.rect(0, 0, 86, 297, 'F');
-      imageCover(doc, image, 86, 0, 124, 297);
+      imagePanel(doc, image, 86, 0, 124, 297, 0, palette, dayIndex);
       label(doc, `Day ${dayIndex + 1} of ${context.tour.days.length}`, 14, 28, palette.accent);
       const end = title(doc, day.title || `Day ${dayIndex + 1}`, 14, 45, 62, fonts, contrast(palette.primary), 25, 5);
       wrapped(doc, narrative, 14, end + 12, 61, {
@@ -385,8 +399,8 @@
     } else if (['collage', 'organic'].includes(layout)) {
       label(doc, `Day ${dayIndex + 1} of ${context.tour.days.length}`, margin, 20, palette.primary);
       title(doc, day.title || `Day ${dayIndex + 1}`, margin, 33, 165, fonts, palette.ink, 25, 2);
-      imageCover(doc, image, margin, 58, 112, 120, radiusFor(design) + 4);
-      imageCover(doc, secondary, 135, 73, 58, 75, radiusFor(design) + 5);
+      imagePanel(doc, image, margin, 58, 112, 120, radiusFor(design) + 4, palette, dayIndex);
+      imagePanel(doc, secondary, 135, 73, 58, 75, radiusFor(design) + 5, palette, dayIndex);
       setFill(doc, palette.primary);
       rounded(doc, 75, 166, 118, 85, radiusFor(design) + 3, 'F');
       label(doc, `Day ${dayIndex + 1}`, 87, 184, palette.accent);
@@ -401,16 +415,17 @@
       doc.setFontSize(24);
       const headingLines = doc.splitTextToSize(text(day.title || `Day ${dayIndex + 1}`), PAGE.width - margin * 2).slice(0, 2);
       const bodyY = headingLines.length > 1 ? 66 : 53;
-      const imageHeight = layout === 'text' ? 70 : 126;
-      imageCover(doc, image, margin, bodyY, PAGE.width - margin * 2, imageHeight, radiusFor(design));
+      const imageHeight = layout === 'text' ? 102 : 204 - bodyY;
+      const storyHeight = layout === 'text' ? 95 : 61;
+      imagePanel(doc, image, margin, bodyY, PAGE.width - margin * 2, imageHeight, radiusFor(design), palette, dayIndex);
       setFill(doc, mix(palette.primary, palette.paper, .94));
-      rounded(doc, margin, bodyY + imageHeight + 7, PAGE.width - margin * 2, layout === 'text' ? 75 : 61, radiusFor(design), 'F');
+      rounded(doc, margin, bodyY + imageHeight + 7, PAGE.width - margin * 2, storyHeight, radiusFor(design), 'F');
       label(doc, `Day ${dayIndex + 1}`, margin + 8, bodyY + imageHeight + 20, palette.primary);
       wrapped(doc, narrative, margin + 8, bodyY + imageHeight + 33, PAGE.width - margin * 2 - 16, {
         size: 9.5,
         lineHeight: 1.55,
         color: mix(palette.ink, palette.paper, .22),
-        maxLines: layout === 'text' ? 10 : 7
+        maxLines: layout === 'text' ? 13 : 7
       });
       label(doc, `Day ${dayIndex + 1} of ${context.tour.days.length}`, margin, 20, palette.primary);
       title(doc, day.title || `Day ${dayIndex + 1}`, margin, 31, PAGE.width - margin * 2, fonts, palette.ink, 24, 2);
@@ -427,78 +442,65 @@
     const margin = marginFor(design);
     const gap = 5;
     const boxWidth = (PAGE.width - margin * 2 - gap) / 2;
+    const listHeight = 60;
     const drawList = (items, x, heading, included) => {
       setFill(doc, mix(included ? palette.primary : palette.accent, palette.paper, .94));
       setDraw(doc, mix(included ? palette.primary : palette.accent, palette.paper, .72));
-      rounded(doc, x, y, boxWidth, 73, radiusFor(design), 'FD');
-      wrapped(doc, heading, x + 7, y + 13, boxWidth - 14, { size: 13, color: palette.ink, font: fonts.heading, style: 'bold', maxLines: 1 });
+      rounded(doc, x, y, boxWidth, listHeight, radiusFor(design), 'FD');
+      wrapped(doc, heading, x + 7, y + 12, boxWidth - 14, { size: 12.5, color: palette.ink, font: fonts.heading, style: 'bold', maxLines: 1 });
       lines(items).slice(0, 7).forEach((item, index) => {
         setFill(doc, included ? palette.primary : palette.accent);
-        doc.circle(x + 8, y + 25 + index * 7.2, 1.1, 'F');
-        wrapped(doc, item, x + 12, y + 27 + index * 7.2, boxWidth - 18, { size: 7.4, lineHeight: 1.05, color: mix(palette.ink, palette.paper, .18), maxLines: 1 });
+        doc.circle(x + 8, y + 22 + index * 5.3, 1, 'F');
+        wrapped(doc, item, x + 12, y + 24 + index * 5.3, boxWidth - 18, { size: 7.1, lineHeight: 1, color: mix(palette.ink, palette.paper, .18), maxLines: 1 });
       });
     };
     drawList(tour.inclusions, margin, 'What is included', true);
     drawList(tour.exclusions, margin + boxWidth + gap, 'Not included', false);
-    y += 81;
+    y += listHeight + 7;
 
     if (design.showPricing) {
       setFill(doc, palette.primary);
-      rounded(doc, margin, y, PAGE.width - margin * 2, 31, radiusFor(design), 'F');
-      label(doc, 'Package investment', margin + 8, y + 10, mix(contrast(palette.primary), palette.primary, .3));
-      wrapped(doc, context.priceLabel || `${tour.priceCurrency || 'LKR'} ${Number(tour.priceAmount || 0).toLocaleString()}`, margin + 8, y + 23, PAGE.width - margin * 2 - 16, { size: 16, color: contrast(palette.primary), font: fonts.heading, style: 'bold', maxLines: 1 });
-      y += 39;
+      rounded(doc, margin, y, PAGE.width - margin * 2, 27, radiusFor(design), 'F');
+      label(doc, 'Package investment', margin + 8, y + 9, mix(contrast(palette.primary), palette.primary, .3));
+      wrapped(doc, context.priceLabel || `${tour.priceCurrency || 'LKR'} ${Number(tour.priceAmount || 0).toLocaleString()}`, margin + 8, y + 21, PAGE.width - margin * 2 - 16, { size: 15, color: contrast(palette.primary), font: fonts.heading, style: 'bold', maxLines: 1 });
+      y += 33;
     }
 
     if (design.showNotes) {
       setFill(doc, mix(palette.accent, palette.paper, .90));
-      rounded(doc, margin, y, PAGE.width - margin * 2, 39, radiusFor(design), 'F');
-      label(doc, 'Important notes', margin + 7, y + 10, palette.primary);
-      wrapped(doc, tour.importantNotes || 'Your itinerary can be refined before confirmation. Final availability and rates are confirmed at booking.', margin + 7, y + 21, PAGE.width - margin * 2 - 14, { size: 8, lineHeight: 1.35, color: mix(palette.ink, palette.paper, .20), maxLines: 4 });
-      y += 47;
+      rounded(doc, margin, y, PAGE.width - margin * 2, 33, radiusFor(design), 'F');
+      label(doc, 'Important notes', margin + 7, y + 9, palette.primary);
+      wrapped(doc, tour.importantNotes || 'Your itinerary can be refined before confirmation. Final availability and rates are confirmed at booking.', margin + 7, y + 19, PAGE.width - margin * 2 - 14, { size: 7.7, lineHeight: 1.25, color: mix(palette.ink, palette.paper, .20), maxLines: 3 });
+      y += 39;
     }
 
     if (images.qr) {
       setDraw(doc, mix(palette.primary, palette.paper, .76));
-      rounded(doc, margin, y, PAGE.width - margin * 2, 39, radiusFor(design), 'D');
-      doc.addImage(images.qr.data, images.qr.format, margin + 5, y + 4, 31, 31, undefined, 'FAST');
-      label(doc, 'Take this journey with you', margin + 43, y + 12, palette.primary);
-      wrapped(doc, 'Scan to read on your phone', margin + 43, y + 23, PAGE.width - margin * 2 - 50, { size: 12, color: palette.ink, font: fonts.heading, style: 'bold', maxLines: 1 });
-      wrapped(doc, 'Open the shared itinerary and keep the latest version close at hand.', margin + 43, y + 31, PAGE.width - margin * 2 - 50, { size: 7.2, color: mix(palette.ink, palette.paper, .35), maxLines: 1 });
+      rounded(doc, margin, y, PAGE.width - margin * 2, 31, radiusFor(design), 'D');
+      doc.addImage(images.qr.data, images.qr.format, margin + 4, y + 3, 25, 25, undefined, 'FAST');
+      label(doc, 'Take this journey with you', margin + 35, y + 10, palette.primary);
+      wrapped(doc, 'Scan to read on your phone', margin + 35, y + 21, PAGE.width - margin * 2 - 42, { size: 10.5, color: palette.ink, font: fonts.heading, style: 'bold', maxLines: 1 });
+      y += 37;
     }
-    footer(doc, design, palette, pageNumber, totalPages);
-  }
 
-  function policyPage(doc, context, palette, fonts, pageNumber, totalPages) {
-    const { tour, design } = context;
-    addPage(doc, palette);
-    const margin = marginFor(design);
-    let y = header(doc, 'Booking information', 'Payments & policies', design, palette, fonts);
+    const policyHeight = Math.max(37, Math.min(58, 274 - y));
+    const columnWidth = (PAGE.width - margin * 2 - 5) / 2;
+    setFill(doc, mix(palette.primary, palette.paper, .95));
+    setDraw(doc, mix(palette.primary, palette.paper, .76));
+    rounded(doc, margin, y, PAGE.width - margin * 2, policyHeight, radiusFor(design), 'FD');
+    label(doc, 'Payment and booking policies', margin + 7, y + 9, palette.primary);
+    const methods = lines(tour.paymentMethods).join(' | ') || 'Contact us to arrange payment.';
     const deposit = Math.max(0, Math.min(100, Number(tour.depositPercent || 0)));
     const amount = Number(tour.priceAmount || 0);
     const depositAmount = amount * deposit / 100;
-
-    setFill(doc, palette.primary);
-    rounded(doc, margin, y, PAGE.width - margin * 2, 35, radiusFor(design), 'F');
-    label(doc, 'Deposit to confirm', margin + 8, y + 11, mix(contrast(palette.primary), palette.primary, .3));
-    const paymentHeadline = context.documentType === 'invoice'
-      ? `${deposit}% deposit ${tour.priceCurrency || 'LKR'} ${depositAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })}  |  Balance ${tour.priceCurrency || 'LKR'} ${(amount - depositAmount).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
-      : `${deposit}%  |  ${tour.priceCurrency || 'LKR'} ${depositAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
-    wrapped(doc, paymentHeadline, margin + 8, y + 25, PAGE.width - margin * 2 - 16, { size: context.documentType === 'invoice' ? 12.5 : 16, color: contrast(palette.primary), font: fonts.heading, style: 'bold', maxLines: 1 });
-    y += 44;
-
-    const card = (kicker, heading, body, height) => {
-      setFill(doc, mix(palette.primary, palette.paper, .95));
-      setDraw(doc, mix(palette.primary, palette.paper, .76));
-      rounded(doc, margin, y, PAGE.width - margin * 2, height, radiusFor(design), 'FD');
-      label(doc, kicker, margin + 8, y + 11, palette.primary);
-      wrapped(doc, heading, margin + 8, y + 24, PAGE.width - margin * 2 - 16, { size: 14, color: palette.ink, font: fonts.heading, style: 'bold', maxLines: 2 });
-      wrapped(doc, body, margin + 8, y + 36, PAGE.width - margin * 2 - 16, { size: 8.2, lineHeight: 1.35, color: mix(palette.ink, palette.paper, .2), maxLines: 4 });
-      y += height + 8;
-    };
-    card('Payment methods', 'Ways to pay', lines(tour.paymentMethods).join('  |  ') || 'Contact us to arrange payment.', 44);
-    card('Payment policy', 'Booking schedule', tour.paymentPolicy || 'A deposit confirms the booking and the balance is due before arrival.', 52);
-    card('Cancellation policy', 'If plans change', tour.cancellationPolicy || 'Cancellation charges depend on notice and committed supplier costs.', 52);
+    const paymentSummary = context.documentType === 'invoice'
+      ? `${deposit}% deposit ${tour.priceCurrency || 'LKR'} ${depositAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })} | Balance ${tour.priceCurrency || 'LKR'} ${(amount - depositAmount).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+      : `${deposit}% deposit | ${methods}`;
+    wrapped(doc, paymentSummary, margin + 7, y + 19, columnWidth - 10, { size: 8.5, color: palette.ink, font: fonts.heading, style: 'bold', maxLines: 2 });
+    const paymentBody = `${context.documentType === 'invoice' ? `${methods}. ` : ''}${tour.paymentPolicy || 'A deposit confirms the booking and the balance is due before arrival.'}`;
+    wrapped(doc, paymentBody, margin + 7, y + 31, columnWidth - 10, { size: 7, lineHeight: 1.2, color: mix(palette.ink, palette.paper, .2), maxLines: policyHeight > 45 ? 3 : 2 });
+    label(doc, 'Cancellation', margin + columnWidth + 8, y + 19, palette.primary);
+    wrapped(doc, tour.cancellationPolicy || 'Cancellation charges depend on notice and committed supplier costs.', margin + columnWidth + 8, y + 30, columnWidth - 14, { size: 7, lineHeight: 1.2, color: mix(palette.ink, palette.paper, .2), maxLines: policyHeight > 45 ? 4 : 2 });
     footer(doc, design, palette, pageNumber, totalPages);
   }
 
@@ -523,7 +525,7 @@
     const { tour, design } = context;
     return (design.showCover ? 1 : 0) + design.sectionOrder.reduce((count, section) => {
       if (section === 'days') return count + (tour.days || []).length;
-      return count + (section === 'package' ? 2 : 1);
+      return count + 1;
     }, 0) + (design.showClosing ? 1 : 0);
   }
 
@@ -585,8 +587,6 @@
       if (section === 'package') {
         pageNumber += 1;
         packagePage(doc, context, images, palette, fonts, pageNumber, totalPages);
-        pageNumber += 1;
-        policyPage(doc, context, palette, fonts, pageNumber, totalPages);
       }
     }
     if (context.design.showClosing) {
