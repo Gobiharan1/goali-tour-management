@@ -15,6 +15,8 @@ Open the published GitHub Pages site:
 - Drag day cards into any position with automatic day-number and default-title updates (plus accessible up/down controls)
 - Build each day with reorderable text, activity, hotel, map/location, highlight, and divider blocks
 - Work in a bright, Notion-inspired interface using the eye-friendly Poppins typeface
+- Move through a guided six-step itinerary editor with sticky section navigation and clearer save feedback
+- Use a refined responsive dashboard with richer journey stats, improved search states, and touch-friendly controls
 - Reuse locally saved images from the media library and apply them as itinerary covers
 - Undo and redo day-builder changes, recover earlier saved versions, autosave drafts, improve writing, and run a completeness check
 - Upload a company logo and automatically select a matching brand color

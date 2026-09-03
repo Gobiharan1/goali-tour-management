@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#fbfbfa">
+  <meta name="theme-color" content="#f4f7f2">
   <meta name="description" content="A browser-based workspace for creating polished, branded travel itineraries.">
   <meta property="og:title" content="Goali Tours — Itinerary Studio">
   <meta property="og:description" content="Create, customize, preview, and print beautiful tour proposals directly in your browser.">
@@ -15,13 +15,13 @@
   <meta name="twitter:description" content="Create, customize, preview, and print beautiful tour proposals directly in your browser.">
   <meta name="twitter:image" content="https://gobiharan1.github.io/goali-tour-management/public/og.png">
   <title>Goali Tours — Itinerary Studio</title>
-  <link rel="stylesheet" href="assets/css/browser-app.css?v=20260903-5">
-  <link rel="stylesheet" href="assets/css/design-studio.css?v=20260903-5">
+  <link rel="stylesheet" href="assets/css/browser-app.css?v=20260903-6">
+  <link rel="stylesheet" href="assets/css/design-studio.css?v=20260903-6">
   <script defer src="assets/vendor/qrcode.min.js"></script>
   <script defer src="assets/vendor/jspdf.umd.min.js"></script>
-  <script defer src="assets/js/designs.js?v=20260903-5"></script>
-  <script defer src="assets/js/pdf-export.js?v=20260903-5"></script>
-  <script defer src="assets/js/app.js?v=20260903-5"></script>
+  <script defer src="assets/js/designs.js?v=20260903-6"></script>
+  <script defer src="assets/js/pdf-export.js?v=20260903-6"></script>
+  <script defer src="assets/js/app.js?v=20260903-6"></script>
 </head>
 <body>
   <div id="app" class="app-shell">
@@ -35,6 +35,7 @@
       </div>
 
       <nav class="side-nav">
+        <span class="nav-label">Workspace</span>
         <button class="nav-item active" data-view="dashboard" type="button">
           <span class="nav-icon">⌂</span><span>Dashboard</span>
         </button>
@@ -64,7 +65,7 @@
 
       <div class="sidebar-foot">
         <span class="status-dot"></span>
-        <span>Saved locally</span>
+        <span>Workspace ready</span>
         <button id="mobileClose" class="mobile-close" type="button" aria-label="Close menu">×</button>
       </div>
     </aside>
@@ -79,13 +80,19 @@
       </header>
 
       <section id="dashboardView" class="view active" aria-labelledby="dashboardTitle">
-        <div class="page-head">
+        <div class="page-head dashboard-hero">
           <div>
             <span class="eyebrow">Tour workspace</span>
             <h1 id="dashboardTitle">Your journeys, beautifully organized.</h1>
             <p>Create tailored tour stories, keep every detail editable, and deliver a polished proposal.</p>
+            <div class="hero-points" aria-label="Workspace features">
+              <span>✓ Easy editing</span><span>✓ Branded PDFs</span><span>✓ Saved privately</span>
+            </div>
           </div>
-          <button class="button primary" data-view-jump="editor" type="button">Create itinerary <span>＋</span></button>
+          <div class="page-head-actions">
+            <button class="button secondary" data-view-jump="design" type="button">Explore designs</button>
+            <button class="button primary" data-view-jump="editor" type="button">Create itinerary <span>＋</span></button>
+          </div>
         </div>
 
         <div class="stats-grid" id="statsGrid"></div>
@@ -93,7 +100,7 @@
         <div class="content-toolbar">
           <div>
             <span class="eyebrow">Itinerary library</span>
-            <h2>Recent proposals</h2>
+            <h2>Recent proposals <span id="libraryCount" class="library-count"></span></h2>
           </div>
           <div class="toolbar-controls">
             <label class="search-control">
@@ -123,12 +130,20 @@
               <div class="autosave"><span class="status-dot"></span><span id="saveStatus">Draft autosave is on</span></div>
             </div>
           </div>
+          <nav class="editor-steps" aria-label="Itinerary editor sections">
+            <button class="editor-step active" data-scroll-section="journeyEssentials" type="button"><b>1</b><span>Essentials</span></button>
+            <button class="editor-step" data-scroll-section="guestStory" type="button"><b>2</b><span>Guest</span></button>
+            <button class="editor-step" data-scroll-section="dayStory" type="button"><b>3</b><span>Days</span></button>
+            <button class="editor-step" data-scroll-section="packageDetails" type="button"><b>4</b><span>Package</span></button>
+            <button class="editor-step" data-scroll-section="paymentPolicies" type="button"><b>5</b><span>Policies</span></button>
+            <button class="editor-step" data-scroll-section="coverMedia" type="button"><b>6</b><span>Media</span></button>
+          </nav>
         </div>
 
         <form id="tourForm" novalidate>
           <input id="tourId" type="hidden">
 
-          <section class="form-card">
+          <section id="journeyEssentials" class="form-card" data-editor-section>
             <div class="section-number">01</div>
             <div class="section-heading">
               <h2>Journey essentials</h2>
@@ -144,7 +159,7 @@
             </div>
           </section>
 
-          <section class="form-card">
+          <section id="guestStory" class="form-card" data-editor-section>
             <div class="section-number">02</div>
             <div class="section-heading">
               <h2>Guest & story</h2>
@@ -158,7 +173,7 @@
             </div>
           </section>
 
-          <section class="form-card">
+          <section id="dayStory" class="form-card" data-editor-section>
             <div class="section-number">03</div>
             <div class="section-heading split">
               <div><h2>Day-by-day story</h2><p>Reorder days and add flexible content blocks for hotels, activities, maps, highlights, text, and dividers.</p></div>
@@ -170,7 +185,7 @@
             <div id="dayPlans" class="day-editor-list"></div>
           </section>
 
-          <section class="form-card">
+          <section id="packageDetails" class="form-card" data-editor-section>
             <div class="section-number">04</div>
             <div class="section-heading">
               <h2>Package details</h2>
@@ -186,7 +201,7 @@
             </div>
           </section>
 
-          <section class="form-card">
+          <section id="paymentPolicies" class="form-card" data-editor-section>
             <div class="section-number">05</div>
             <div class="section-heading">
               <h2>Payments & policies</h2>
@@ -200,7 +215,7 @@
             </div>
           </section>
 
-          <section class="form-card">
+          <section id="coverMedia" class="form-card" data-editor-section>
             <div class="section-number">06</div>
             <div class="section-heading">
               <h2>Cover image</h2>
@@ -219,8 +234,8 @@
           </section>
 
           <div class="form-actions">
-            <button class="button ghost" data-view-jump="dashboard" type="button">Cancel</button>
-            <button class="button primary" type="submit">Save itinerary</button>
+            <span class="form-action-note"><i class="status-dot"></i><span><strong>Ready when you are</strong><small>Changes are autosaved on this device</small></span></span>
+            <span class="form-action-buttons"><button class="button ghost" data-view-jump="dashboard" type="button">Cancel</button><button class="button primary" type="submit">Save itinerary <span>→</span></button></span>
           </div>
         </form>
       </section>
