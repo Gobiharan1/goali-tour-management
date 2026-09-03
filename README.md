@@ -30,6 +30,7 @@ Open the published GitHub Pages site:
 - Download separate proposal, quotation, and invoice PDFs
 - Add deposit percentages, payment methods, payment policy, and cancellation policy to every customer document
 - Search and filter the itinerary library
+- Add reusable custom package categories directly from the itinerary editor
 - Export and import a complete JSON workspace backup
 - Responsive dashboard for desktop, tablet, and mobile
 
