@@ -350,11 +350,11 @@
     const totalDays = active.reduce((sum, tour) => sum + Number(tour.durationDays || 0), 0);
     const recent = active.filter(tour => Date.now() - new Date(tour.updatedAt).getTime() < 30 * 86400000).length;
     $('#statsGrid').innerHTML = [
-      ['Active proposals', active.length],
-      ['Customer stories', customers.size],
-      ['Journey days', totalDays],
-      ['Updated this month', recent]
-    ].map(([label, value]) => `<article class="stat-card"><span>${label}</span><strong>${value}</strong></article>`).join('');
+      ['Active proposals', active.length, '◫', 'Ready to customize'],
+      ['Customer stories', customers.size, '◎', 'Personalized journeys'],
+      ['Journey days', totalDays, '↗', 'Across all itineraries'],
+      ['Updated this month', recent, '✦', 'Recently refreshed']
+    ].map(([label, value, icon, note]) => `<article class="stat-card"><span class="stat-icon" aria-hidden="true">${icon}</span><div><span>${label}</span><strong>${value}</strong><small>${note}</small></div></article>`).join('');
 
     const query = $('#searchTours').value.trim().toLowerCase();
     const category = $('#categoryFilter').value;
@@ -362,9 +362,10 @@
       .filter(tour => !category || tour.category === category)
       .filter(tour => !query || [tour.tourName, tour.customerName, tour.locations, tour.packageId].join(' ').toLowerCase().includes(query))
       .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+    $('#libraryCount').textContent = `${filtered.length} ${filtered.length === 1 ? 'journey' : 'journeys'}`;
 
     if (!filtered.length) {
-      $('#tourGrid').innerHTML = `<div class="empty-state"><strong>No itineraries found</strong><p>Start a new proposal or try a different search.</p><button class="button primary" data-view-jump="editor" type="button">Create itinerary</button></div>`;
+      $('#tourGrid').innerHTML = `<div class="empty-state"><span class="empty-icon" aria-hidden="true">✦</span><strong>No itineraries found</strong><p>Start a new proposal or try a different search and category.</p><button class="button primary" data-view-jump="editor" type="button">Create itinerary</button></div>`;
       return;
     }
 
@@ -1473,6 +1474,18 @@
     $('#categoryDialog').addEventListener('click', event => {
       if (event.target === $('#categoryDialog')) closeCategoryDialog();
     });
+    $$('.editor-step').forEach(step => step.addEventListener('click', () => {
+      const section = document.getElementById(step.dataset.scrollSection);
+      if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }));
+    if ('IntersectionObserver' in window) {
+      const sectionObserver = new IntersectionObserver(entries => {
+        const visible = entries.filter(entry => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (!visible) return;
+        $$('.editor-step').forEach(step => step.classList.toggle('active', step.dataset.scrollSection === visible.target.id));
+      }, { rootMargin: '-18% 0px -65%', threshold: [0, .2, .6] });
+      $$('[data-editor-section]').forEach(section => sectionObserver.observe(section));
+    }
     $('#mobileMenu').addEventListener('click', openMobileMenu);
     $('#mobileClose').addEventListener('click', closeMobileMenu);
     $('#sidebarBackdrop').addEventListener('click', closeMobileMenu);
