@@ -246,7 +246,7 @@
     const light = [255, 255, 255];
     const onPrimary = contrast(palette.primary);
     const style = design.coverStyle;
-    const documentLabel = context.documentType === 'invoice' ? 'Invoice' : context.documentType === 'quotation' ? 'Quotation' : 'Travel proposal';
+    const documentLabel = context.documentType === 'bundle' ? 'Complete tour document' : context.documentType === 'invoice' ? 'Invoice' : context.documentType === 'quotation' ? 'Quotation' : 'Travel proposal';
     const coverKicker = `${documentLabel} for ${tour.customerName || 'our guest'}`;
     pageBase(doc, palette);
 
@@ -504,6 +504,110 @@
     footer(doc, design, palette, pageNumber, totalPages);
   }
 
+  function commercialPage(doc, context, kind, palette, fonts, pageNumber, totalPages) {
+    const { tour, design } = context;
+    const isInvoice = kind === 'invoice';
+    const margin = marginFor(design);
+    const contentWidth = PAGE.width - margin * 2;
+    const currency = text(tour.priceCurrency || 'LKR');
+    const total = Math.max(0, Number(tour.priceAmount || 0));
+    const depositPercent = Math.max(0, Math.min(100, Number(tour.depositPercent || 0)));
+    const depositAmount = total * depositPercent / 100;
+    const balanceAmount = total - depositAmount;
+    const money = amount => `${currency} ${Number(amount).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+    const reference = text(tour.packageId || 'TOUR').replace(/[^A-Z0-9-]/gi, '').toUpperCase() || 'TOUR';
+    const documentNumber = `${reference}-${isInvoice ? 'INV' : 'QUO'}`;
+    const issueDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const lightPrimary = mix(palette.primary, palette.paper, .94);
+    const mutedInk = mix(palette.ink, palette.paper, .30);
+
+    addPage(doc, palette);
+    let y = header(doc, isInvoice ? 'Payment document' : 'Commercial offer', isInvoice ? 'Invoice' : 'Quotation', design, palette, fonts);
+
+    const meta = [
+      ['Document no.', documentNumber],
+      ['Prepared for', tour.customerName || 'Guest'],
+      ['Issue date', issueDate]
+    ];
+    const metaGap = 4;
+    const metaWidth = (contentWidth - metaGap * 2) / 3;
+    meta.forEach(([key, value], index) => {
+      const x = margin + index * (metaWidth + metaGap);
+      setFill(doc, lightPrimary);
+      setDraw(doc, mix(palette.primary, palette.paper, .80));
+      rounded(doc, x, y, metaWidth, 25, radiusFor(design), 'FD');
+      label(doc, key, x + 5, y + 8, palette.primary);
+      wrapped(doc, value, x + 5, y + 17, metaWidth - 10, { size: 8.5, color: palette.ink, font: fonts.heading, style: 'bold', maxLines: 2 });
+    });
+    y += 35;
+
+    wrapped(doc, tour.tourName || 'Tailored tour package', margin, y, contentWidth, { size: 18, color: palette.ink, font: fonts.heading, style: 'bold', maxLines: 2 });
+    y += 16;
+    wrapped(doc, `${tour.durationDays || 1} days / ${tour.durationNights || 0} nights  |  ${tour.travelDates || 'Flexible dates'}`, margin, y, contentWidth, { size: 8.5, color: mutedInk, maxLines: 2 });
+    y += 13;
+
+    setFill(doc, palette.primary);
+    rounded(doc, margin, y, contentWidth, 12, radiusFor(design), 'F');
+    label(doc, 'Description', margin + 6, y + 8, contrast(palette.primary));
+    label(doc, 'Qty', margin + contentWidth - 47, y + 8, contrast(palette.primary));
+    label(doc, 'Amount', margin + contentWidth - 27, y + 8, contrast(palette.primary));
+    y += 12;
+
+    setFill(doc, lightPrimary);
+    setDraw(doc, mix(palette.primary, palette.paper, .80));
+    rounded(doc, margin, y, contentWidth, 36, radiusFor(design), 'FD');
+    wrapped(doc, `Private tour package - ${tour.locations || tour.tourName || 'custom itinerary'}`, margin + 6, y + 12, contentWidth - 62, { size: 9, color: palette.ink, font: fonts.heading, style: 'bold', maxLines: 2 });
+    wrapped(doc, '1', margin + contentWidth - 43, y + 12, 10, { size: 9, color: palette.ink, align: 'center', maxLines: 1 });
+    wrapped(doc, money(total), margin + contentWidth - 7, y + 12, 36, { size: 9, color: palette.ink, font: fonts.heading, style: 'bold', align: 'right', maxLines: 1 });
+    y += 46;
+
+    const summaryX = margin + contentWidth - 82;
+    const summaryRows = [
+      ['Package total', money(total)],
+      [`Deposit (${depositPercent}%)`, money(depositAmount)],
+      [isInvoice ? 'Amount due now' : 'Balance before arrival', money(isInvoice ? depositAmount : balanceAmount)]
+    ];
+    summaryRows.forEach(([key, value], index) => {
+      const rowY = y + index * 13;
+      if (index === 2) {
+        setFill(doc, palette.primary);
+        rounded(doc, summaryX, rowY - 7, 82, 13, radiusFor(design), 'F');
+      }
+      wrapped(doc, key, summaryX + 5, rowY, 39, { size: 8, color: index === 2 ? contrast(palette.primary) : mutedInk, style: index === 2 ? 'bold' : 'normal', maxLines: 1 });
+      wrapped(doc, value, summaryX + 77, rowY, 33, { size: 8.5, color: index === 2 ? contrast(palette.primary) : palette.ink, font: fonts.heading, style: 'bold', align: 'right', maxLines: 1 });
+      if (index < 2) {
+        setDraw(doc, mix(palette.ink, palette.paper, .82));
+        doc.line(summaryX, rowY + 4, summaryX + 82, rowY + 4);
+      }
+    });
+    y += 48;
+
+    const panelGap = 5;
+    const panelWidth = (contentWidth - panelGap) / 2;
+    const panelHeight = 54;
+    const paymentMethods = lines(tour.paymentMethods).join(' | ') || 'Contact us to arrange payment.';
+    const panels = [
+      {
+        title: 'Payment details',
+        body: `${paymentMethods}. ${tour.paymentPolicy || 'A deposit confirms the booking and the balance is due before arrival.'}`
+      },
+      {
+        title: 'Cancellation policy',
+        body: tour.cancellationPolicy || 'Cancellation charges depend on notice and committed supplier costs.'
+      }
+    ];
+    panels.forEach((panel, index) => {
+      const x = margin + index * (panelWidth + panelGap);
+      setFill(doc, mix(index ? palette.accent : palette.primary, palette.paper, .94));
+      setDraw(doc, mix(index ? palette.accent : palette.primary, palette.paper, .76));
+      rounded(doc, x, y, panelWidth, panelHeight, radiusFor(design), 'FD');
+      label(doc, panel.title, x + 7, y + 11, palette.primary);
+      wrapped(doc, panel.body, x + 7, y + 23, panelWidth - 14, { size: 7.8, lineHeight: 1.35, color: mutedInk, maxLines: 9 });
+    });
+
+    footer(doc, design, palette, pageNumber, totalPages);
+  }
+
   function closingPage(doc, context, images, palette, fonts, pageNumber, totalPages) {
     addPage(doc, palette);
     setFill(doc, palette.primary);
@@ -523,10 +627,11 @@
 
   function countPages(context) {
     const { tour, design } = context;
+    const commercialPages = context.documentType === 'bundle' ? 2 : 0;
     return (design.showCover ? 1 : 0) + design.sectionOrder.reduce((count, section) => {
       if (section === 'days') return count + (tour.days || []).length;
       return count + 1;
-    }, 0) + (design.showClosing ? 1 : 0);
+    }, 0) + commercialPages + (design.showClosing ? 1 : 0);
   }
 
   async function preload(context) {
@@ -557,8 +662,8 @@
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true, putOnlyUsedFonts: true });
     doc.setProperties({
-      title: text(`${context.documentType || 'Proposal'} - ${context.tour.tourName || 'Goali itinerary'}`),
-      subject: text(`${context.documentType || 'Travel proposal'} for ${context.tour.customerName || 'guest'}`),
+      title: text(`${context.documentType === 'bundle' ? 'Complete tour document' : context.documentType || 'Proposal'} - ${context.tour.tourName || 'Goali itinerary'}`),
+      subject: text(`${context.documentType === 'bundle' ? 'Proposal, quotation and invoice' : context.documentType || 'Travel proposal'} for ${context.tour.customerName || 'guest'}`),
       author: text(context.brand.companyName || 'Goali Tours'),
       creator: 'Goali Tours Itinerary Studio'
     });
@@ -588,6 +693,12 @@
         pageNumber += 1;
         packagePage(doc, context, images, palette, fonts, pageNumber, totalPages);
       }
+    }
+    if (context.documentType === 'bundle') {
+      pageNumber += 1;
+      commercialPage(doc, context, 'quotation', palette, fonts, pageNumber, totalPages);
+      pageNumber += 1;
+      commercialPage(doc, context, 'invoice', palette, fonts, pageNumber, totalPages);
     }
     if (context.design.showClosing) {
       pageNumber += 1;

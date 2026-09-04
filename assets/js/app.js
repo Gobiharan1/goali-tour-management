@@ -1184,8 +1184,8 @@
     document.body.classList.remove('modal-open');
   }
 
-  async function downloadPdf(documentType = 'proposal') {
-    const button = documentType === 'quotation' ? $('#downloadQuotation') : documentType === 'invoice' ? $('#downloadInvoice') : $('#downloadItinerary');
+  async function downloadPdf() {
+    const button = $('#downloadItinerary');
     if (!window.GoaliPdf?.exportItinerary || !activePdfContext) {
       showToast('The precise PDF engine did not load. Use Print instead.');
       return;
@@ -1193,16 +1193,16 @@
     button.disabled = true;
     button.textContent = 'Building precise PDF…';
     try {
-      const context = { ...activePdfContext, documentType };
-      const filename = activePreviewFileName.replace(/\.pdf$/i, `-${documentType}.pdf`);
+      const context = { ...activePdfContext, documentType: 'bundle' };
+      const filename = activePreviewFileName.replace(/\.pdf$/i, '-complete.pdf');
       const result = await window.GoaliPdf.exportItinerary(context, filename);
-      showToast(`${documentType[0].toUpperCase() + documentType.slice(1)} PDF downloaded · ${result.pages} A4 pages`);
+      showToast(`Complete tour PDF downloaded · ${result.pages} A4 pages`);
     } catch (error) {
       console.error(error);
       showToast('Direct download failed. Print / Save PDF is still available.');
     } finally {
       button.disabled = false;
-      button.textContent = documentType === 'quotation' ? 'Quotation PDF' : documentType === 'invoice' ? 'Invoice PDF' : 'Proposal PDF';
+      button.textContent = 'Download full PDF';
     }
   }
 
@@ -1497,9 +1497,7 @@
     $('#mobileClose').addEventListener('click', closeMobileMenu);
     $('#sidebarBackdrop').addEventListener('click', closeMobileMenu);
     $('#closePreview').addEventListener('click', closePreview);
-    $('#downloadItinerary').addEventListener('click', () => downloadPdf('proposal'));
-    $('#downloadQuotation').addEventListener('click', () => downloadPdf('quotation'));
-    $('#downloadInvoice').addEventListener('click', () => downloadPdf('invoice'));
+    $('#downloadItinerary').addEventListener('click', downloadPdf);
     $('#copyShareLink').addEventListener('click', copyShareLink);
     $('#approveProposal').addEventListener('click', () => copyCustomerResponse('approved'));
     $('#requestChanges').addEventListener('click', () => copyCustomerResponse('changes'));
