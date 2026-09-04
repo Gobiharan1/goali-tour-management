@@ -29,7 +29,7 @@ Open the published GitHub Pages site:
 - Add a QR code to every PDF that opens a compressed, read-only mobile copy of the itinerary
 - Copy the QR sharing link directly from the document preview
 - Let customers record approval or copy a change-request response from the shared mobile view
-- Download one complete tour PDF containing the proposal, quotation, and invoice
+- Download one complete tour PDF containing the proposal, quotation, and invoice, or export the quotation and invoice as their own financial documents
 - Add deposit percentages, payment methods, payment policy, and cancellation policy to every customer document
 - Search and filter the itinerary library
 - Add reusable custom package categories directly from the itinerary editor
@@ -48,7 +48,7 @@ Open `index.html` directly, or serve the folder with any static web server.
 
 ## PDF export
 
-Open a proposal, select **Preview**, then choose **Download full PDF** for a single document containing the tour proposal, quotation, and invoice. The exporter follows an FPDF-style layout model: millimetre-based positioning, explicit page templates, controlled image crops, automatic text wrapping, and predictable page numbering.
+Open a proposal and select **Preview**. Choose **Full tour PDF** for a single document containing the proposal, quotation, and invoice. **Quotation PDF** and **Invoice PDF** each export a focused one-page financial document instead of repeating the itinerary. The exporter follows an FPDF-style layout model: millimetre-based positioning, explicit page templates, controlled image crops, automatic text wrapping, and predictable page numbering.
 
 The Design Studio includes four quick PDF styles plus controls for colors, fonts, spacing, corners, cover design, daily layout, section order, and visible content. You can also select **Print** and use the browser dialog:
 
