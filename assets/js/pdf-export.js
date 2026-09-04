@@ -627,6 +627,7 @@
 
   function countPages(context) {
     const { tour, design } = context;
+    if (['quotation', 'invoice'].includes(context.documentType)) return 1;
     const commercialPages = context.documentType === 'bundle' ? 2 : 0;
     return (design.showCover ? 1 : 0) + design.sectionOrder.reduce((count, section) => {
       if (section === 'days') return count + (tour.days || []).length;
@@ -657,16 +658,25 @@
       ink: hex(context.design.ink)
     };
     const fonts = fontSet(context.design);
-    const images = await preload(context);
+    const financialOnly = ['quotation', 'invoice'].includes(context.documentType);
+    const images = financialOnly ? { cover: null, logo: null, qr: null, days: [] } : await preload(context);
     const totalPages = countPages(context);
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true, putOnlyUsedFonts: true });
+    const metadataLabel = context.documentType === 'bundle' ? 'Complete tour document' : context.documentType === 'invoice' ? 'Invoice' : context.documentType === 'quotation' ? 'Quotation' : 'Proposal';
     doc.setProperties({
-      title: text(`${context.documentType === 'bundle' ? 'Complete tour document' : context.documentType || 'Proposal'} - ${context.tour.tourName || 'Goali itinerary'}`),
-      subject: text(`${context.documentType === 'bundle' ? 'Proposal, quotation and invoice' : context.documentType || 'Travel proposal'} for ${context.tour.customerName || 'guest'}`),
+      title: text(`${metadataLabel} - ${context.tour.tourName || 'Goali itinerary'}`),
+      subject: text(`${context.documentType === 'bundle' ? 'Proposal, quotation and invoice' : metadataLabel} for ${context.tour.customerName || 'guest'}`),
       author: text(context.brand.companyName || 'Goali Tours'),
       creator: 'Goali Tours Itinerary Studio'
     });
+
+    if (financialOnly) {
+      doc.deletePage(1);
+      commercialPage(doc, context, context.documentType, palette, fonts, 1, 1);
+      doc.save(filename);
+      return { pages: 1 };
+    }
 
     let pageNumber = 0;
     if (context.design.showCover) {
