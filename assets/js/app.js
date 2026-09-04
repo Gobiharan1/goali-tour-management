@@ -46,7 +46,7 @@
     exclusions: ['International flights', 'Travel insurance', 'Personal expenses', 'Optional activities'],
     priceCurrency: 'USD',
     priceAmount: 2450,
-    designId: 'editorial-forest',
+    designId: 'botanical-organic',
     importantNotes: 'Rates are based on two guests sharing. The itinerary can be adjusted around your preferred pace, room style, and interests.',
     depositPercent: 30,
     paymentMethods: ['Bank transfer', 'Credit / debit card'],
@@ -66,13 +66,13 @@
   };
 
   const defaultState = () => ({
-    version: 4,
+    version: 5,
     settings: {
       companyName: 'Goali Tours',
       contact: 'hello@goalitours.com · +94 77 000 0000',
       brandColor: '#173f32',
       logo: '',
-      defaultDesignId: 'editorial-forest'
+      defaultDesignId: 'botanical-organic'
     },
     designs: [],
     media: [],
@@ -121,8 +121,12 @@
   function migrateState(workspace) {
     const fallback = defaultState();
     const migrated = clone(workspace || fallback);
-    migrated.version = 4;
+    const sourceVersion = Number(migrated.version || 1);
+    migrated.version = 5;
     migrated.settings = { ...fallback.settings, ...(migrated.settings || {}) };
+    if (sourceVersion < 5 && migrated.settings.defaultDesignId === 'editorial-forest') {
+      migrated.settings.defaultDesignId = 'botanical-organic';
+    }
     migrated.designs = Array.isArray(migrated.designs)
       ? migrated.designs.map(design => ({ ...Designs.normalize(design), builtIn: false }))
       : [];
@@ -131,7 +135,7 @@
       ? [...new Set(migrated.customCategories.map(category => String(category || '').trim()).filter(Boolean))].slice(0, 50)
       : [];
     const availableIds = new Set(Designs.all(migrated.designs).map(design => design.id));
-    if (!availableIds.has(migrated.settings.defaultDesignId)) migrated.settings.defaultDesignId = 'editorial-forest';
+    if (!availableIds.has(migrated.settings.defaultDesignId)) migrated.settings.defaultDesignId = 'botanical-organic';
     migrated.tours = Array.isArray(migrated.tours) ? migrated.tours : [];
     migrated.tours.forEach(tour => {
       if (!availableIds.has(tour.designId)) tour.designId = migrated.settings.defaultDesignId;
@@ -1025,7 +1029,7 @@
     const design = state.designs.find(item => item.id === selectedDesignId);
     if (!design || !confirm(`Delete “${design.name}”? Journeys using it will switch to the default design.`)) return;
     state.designs = state.designs.filter(item => item.id !== design.id);
-    if (state.settings.defaultDesignId === design.id) state.settings.defaultDesignId = 'editorial-forest';
+    if (state.settings.defaultDesignId === design.id) state.settings.defaultDesignId = 'botanical-organic';
     state.tours.forEach(tour => { if (tour.designId === design.id) tour.designId = state.settings.defaultDesignId; });
     selectedDesignId = state.settings.defaultDesignId;
     designDraft = Designs.find(selectedDesignId, state.designs);
@@ -1280,13 +1284,13 @@
       if (!parsed || !Array.isArray(parsed.tours) || !parsed.settings) throw new Error('Invalid backup');
       if (!confirm(`Import ${parsed.tours.length} itineraries? This replaces the current browser workspace.`)) return;
       state = migrateState({
-        version: 4,
+        version: Number(parsed.version || 1),
         settings: {
           companyName: String(parsed.settings.companyName || 'Goali Tours').slice(0, 160),
           contact: String(parsed.settings.contact || '').slice(0, 240),
           brandColor: /^#[0-9a-f]{6}$/i.test(parsed.settings.brandColor) ? parsed.settings.brandColor : '#173f32',
           logo: safeImage(parsed.settings.logo),
-          defaultDesignId: String(parsed.settings.defaultDesignId || 'editorial-forest')
+          defaultDesignId: String(parsed.settings.defaultDesignId || 'botanical-organic')
         },
         designs: Array.isArray(parsed.designs) ? parsed.designs : [],
         customCategories: Array.isArray(parsed.customCategories) ? parsed.customCategories : [],

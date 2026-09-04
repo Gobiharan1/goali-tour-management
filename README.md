@@ -20,7 +20,7 @@ Open the published GitHub Pages site:
 - Reuse locally saved images from the media library and apply them as itinerary covers
 - Undo and redo day-builder changes, recover earlier saved versions, autosave drafts, improve writing, and run a completeness check
 - Upload a company logo and automatically select a matching PDF color without changing the workspace interface
-- Choose from seven professional PDF designs or save reusable custom designs
+- Choose from seven professional PDF designs, with Botanical Organic as the ready-to-use default, or save reusable custom designs
 - Use premium travel-magazine, campaign-split, and organic-editorial compositions inspired by modern brochure design
 - Customize PDF colors, fonts (including Poppins Clean), spacing, corners, cover style, day layout, section order, and visible content
 - Assign a different saved design to each itinerary and choose a workspace default
